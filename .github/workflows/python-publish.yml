@@ -15,14 +15,12 @@ name: Build & Test Python Package
 on:
   push:
     branches:
-      - master
+      - main
       - feature/*
       - bugfix/*
-    tags:
-      - "*.*.*"
   pull_request:
     branches:
-      - master
+      - main
 
 permissions:
   contents: read
