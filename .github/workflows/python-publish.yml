@@ -83,7 +83,7 @@ jobs:
         if: steps.cache-poetry-dependencies.cache-hit != 'true'
         run: |
           python --version
-          poetry run python --version
+          poetry run python --version | grep ${{ matrix.python-version }}
           poetry install
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
