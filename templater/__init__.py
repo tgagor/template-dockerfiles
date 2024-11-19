@@ -1,5 +1,8 @@
 """Main application module."""
 
-# import importlib.metadata as importlib_metadata
+from importlib.metadata import PackageNotFoundError, version
 
-# __version__ = importlib_metadata.version(__name__)
+try:
+    __version__ = version(__name__)
+except PackageNotFoundError:
+    __version__ = "unknown"

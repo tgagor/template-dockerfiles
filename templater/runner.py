@@ -19,6 +19,8 @@ class Runner:
     def run(self):
         # Get the number of available CPU cores
         max_workers = os.cpu_count() if flags.THREADS == "max" else flags.THREADS
+        if max_workers > 1:
+            log.info(f"Setting parallelism to: {max_workers}")
 
         if flags.DRY_RUN:
             cmds = [" ".join(cmd) for cmd in self.commands]

@@ -1,7 +1,8 @@
 import argparse
 import logging as log
-import os
 import sys
+
+import templater
 
 parser = None
 args = None
@@ -12,7 +13,7 @@ def parse(argv=None):
     global args
 
     parser = argparse.ArgumentParser(
-        prog="templater",
+        prog="template-dockerfiles",
         description="Dockerfile templater and image builder",
         epilog="When 'docker build' is just not enough :-)",
     )
@@ -45,20 +46,28 @@ def parse(argv=None):
     )
 
     parser.add_argument(
-        "--threads",
+        "--parallel",
         help="Specify the number of threads to use (default: number of CPUs).",
         type=validate_threads,
         dest="THREADS",
-        default=os.cpu_count(),
+        default=1,
     )
 
     parser.add_argument(
+        "-v",
         "--verbose",
         help="Be verbose",
         action="store_const",
         dest="LOG_LEVEL",
         const=log.DEBUG,
         default=log.INFO,
+    )
+
+    parser.add_argument(
+        "--version",
+        help="Show the version of the application and exit",
+        action="version",
+        version=f"%(prog)s {templater.__version__}",
     )
 
     # parser.add_argument('--debug',
@@ -86,6 +95,8 @@ def parse(argv=None):
 
 def validate_threads(value):
     """Validate that the provided thread count is a positive integer."""
+    if value.lower() == "max":
+        return "max"
     try:
         threads = int(value)
         if threads < 1:
@@ -93,7 +104,7 @@ def validate_threads(value):
         return threads
     except ValueError:
         raise argparse.ArgumentTypeError(
-            f"Invalid value for threads: {value}. Must be a positive integer."
+            f"Invalid value for threads: {value}. Must be 'max' or a positive integer."
         )
 
 
