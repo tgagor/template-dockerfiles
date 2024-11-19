@@ -5,7 +5,7 @@ maintainer: Tomasz Gągor <tomasz@gagor.pl>
 
 images:
   base:
-    dockerfile: base/Dockerfile.j2
+    dockerfile: base/Dockerfile.jinja2
     variables:
       alpine:
         # - "3.18"
@@ -21,7 +21,7 @@ images:
       - base:alpine
 
   jdk:
-    dockerfile: jdk/Dockerfile.j2
+    dockerfile: jdk/Dockerfile.jinja2
     variables:
       alpine:
         # - "3.19"
@@ -41,7 +41,7 @@ images:
       - jdk:{{ tag }}
 
   jre:
-    dockerfile: jre/Dockerfile.j2
+    dockerfile: jre/Dockerfile.jinja2
     variables:
       alpine:
         # - "3.19"
