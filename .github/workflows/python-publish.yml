@@ -87,15 +87,10 @@ jobs:
           python --version
           poetry run python --version
           poetry install
-
-      - name: Smoke run the app
-        run: |
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-          poetry run docker-templater \
-            --config example/build.yaml \
-            --tag 1.2.3
-            --dry-run
-          # docker-templater --help
+
+      - name: Tests
+        run: poetry run pytest -v
 
   # deploy:
   #   runs-on: ubuntu-latest
