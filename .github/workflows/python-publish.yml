@@ -1,0 +1,124 @@
+# This workflow will upload a Python Package using Twine when a release is created
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Upload Python Package
+
+# on:
+#   release:
+#     types: [published]
+
+on:
+  push:
+    branches:
+      - master
+      - feature/*
+      - bugfix/*
+    tags:
+      - "*.*.*"
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+      - uses: pre-commit/action@v3.0.1
+
+  build:
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+    strategy:
+      matrix:
+        python-version:
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+        poetry-version:
+          - "1.8.4"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare Pip cache
+        run: |
+          echo ${{ matrix.poetry-version }} > .poetry-version
+      - name: Set up Python ${{ matrix.python-version }}
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: "**/.poetry-version"
+
+      - name: Cache Pip Packages
+        id: cache-pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: cache-pip-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ matrix.poetry-version }}
+
+      - name: Install Poetry with Pip
+        if: steps.cache-pip.outputs.cache-hit != 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry==${{ matrix.poetry-version }}
+
+      - name: Load Poetry cache
+        id: cache-poetry-dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: cache-poetry-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ matrix.poetry-version }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install package dependencies with Poetry
+        if: steps.cache-poetry-dependencies.cache-hit != 'true'
+        run: |
+          python --version
+          poetry run python --version
+          poetry install
+
+      - name: Smoke run the app
+        run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          poetry run docker-templater \
+            --config example/build.yaml \
+            --tag 1.2.3
+            --dry-run
+          # docker-templater --help
+
+  # deploy:
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - build
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v3
+  #       with:
+  #         python-version: "3.10"
+  #     - name: Install dependencies
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         pip install poetry
+  #     - name: Build package
+  #       run: |
+  #         poetry install
+  #         poetry run docker-templater --help
+  #         poetry build
+  # FIXME: Not yet
+  # - name: Publish package
+  #   uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+  #   with:
+  #     user: __token__
+  #     password: ${{ secrets.PYPI_API_TOKEN }}
