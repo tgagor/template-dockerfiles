@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "DockerTemplater"
+version = "0.1.0"
+description = "Tool allowing to build multiple Docker images based on a shared template"
+authors = ["Tomasz Gągor <tomasz@gagor.pl>"]
+readme = "README.md"
+packages = [{ include = "templater" }]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+Jinja2 = "^3.1.4"
+pyyaml = "^6.0.2"
+termcolor = "^2.5.0"
+gitpython = "^3.1.43"
+
+[tool.poetry.scripts]
+docker-templater = "templater.main:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
