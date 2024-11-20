@@ -33,7 +33,6 @@ This file format defines the configuration for dynamically generating Docker ima
   maintainer: Name <email@domain>
   ```
 
----
 
 ## **Images Section**
 
@@ -80,7 +79,6 @@ Each image is identified by a key (e.g., `base`, `jdk`, `jre`) and contains the 
   - Labels support Jinja2 expressions. For example, `{{ alpine.split('.')[0] }}` extracts the major version from `alpine`.
   - `tag` argument is provided by `--tag`/`-t` parameter, which reflects the image version.
 
----
 
 ## **Example Configuration**
 
@@ -131,7 +129,6 @@ repo.local/my-base/jdk:21-alpine3
 
 Order of values under `variables` block is used to determine the order of labels creation.
 
----
 
 ## **Validation and Recommendations**
 
