@@ -4,13 +4,10 @@ Template-Dockerfiles
 A versatile Docker image builder that uses Jinja2 templates to dynamically generate Dockerfiles, validate configurations, and build container images efficiently. The app supports parameterized builds, parallel execution, and customization for streamlined container development.
 
 
-## *Configuration Format**
+## **Configuration Format**
 
 This file format defines the configuration for dynamically generating Docker images using Jinja2 templates. It specifies global settings, image definitions, and build parameters.
 
----
-
-## **Global Configuration**
 
 ### **`registry`** (Optional)
 - **Description**: The Docker registry to which images will be pushed. Skip to use Docker Hub.
