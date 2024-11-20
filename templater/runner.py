@@ -25,7 +25,7 @@ class Runner:
         if flags.DRY_RUN:
             cmds = [" ".join(cmd) for cmd in self.commands]
             cmds = "\n".join([f" - {cmd}" for cmd in cmds])
-            log.warning(f"DRY-RUN mode, normally would execute:\n{cmds}")
+            log.debug(f"DRY-RUN mode, normally would execute:\n{cmds}")
             return
 
         # Run all commands in parallel

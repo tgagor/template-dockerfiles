@@ -146,6 +146,10 @@ def execute(playbook):
         for file in temp_files:
             os.remove(file)
 
+    if flags.DRY_RUN:
+        imgs = "\n ".join(images_to_push)
+        log.warning(f"DRY-RUN mode, would create:\n {imgs}")
+
     if flags.PUSH:
         log.info(colored("Pushing images", "white"))
         pusher = Runner()

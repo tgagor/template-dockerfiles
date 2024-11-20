@@ -14,7 +14,7 @@ def parse(argv=None):
 
     parser = argparse.ArgumentParser(
         prog="template-dockerfiles",
-        description="Dockerfile templater and image builder",
+        description="A Docker image builder that uses Jinja2 templates to dynamically generate Dockerfiles.",
         epilog="When 'docker build' is just not enough :-)",
     )
     parser.add_argument(
@@ -29,7 +29,7 @@ def parse(argv=None):
 
     parser.add_argument(
         "--dry-run",
-        help="Print what would be done, but don't do anything",
+        help="print what would be done, but don't do anything",
         action="store_const",
         dest="DRY_RUN",
         const=True,
@@ -38,7 +38,7 @@ def parse(argv=None):
 
     parser.add_argument(
         "--push",
-        help="Push Docker images when successfully build",
+        help="push Docker images when successfully build",
         action="store_const",
         dest="PUSH",
         const=True,
@@ -47,7 +47,7 @@ def parse(argv=None):
 
     parser.add_argument(
         "--parallel",
-        help="Specify the number of threads to use (default: number of CPUs).",
+        help="specify the number of threads to use (default: number of CPUs).",
         type=validate_threads,
         dest="THREADS",
         default=1,
@@ -56,7 +56,7 @@ def parse(argv=None):
     parser.add_argument(
         "-v",
         "--verbose",
-        help="Be verbose",
+        help="be verbose",
         action="store_const",
         dest="LOG_LEVEL",
         const=log.DEBUG,
@@ -65,7 +65,7 @@ def parse(argv=None):
 
     parser.add_argument(
         "--version",
-        help="Show the version of the application and exit",
+        help="show the version of the application and exit",
         action="version",
         version=f"%(prog)s {templater.__version__}",
     )
@@ -81,7 +81,7 @@ def parse(argv=None):
         "--tag",
         action="store",
         dest="TAG",
-        help="Tag that could be used as an image version",
+        help="tag that could be used as an image version",
         required=True,
         default=None,
     )

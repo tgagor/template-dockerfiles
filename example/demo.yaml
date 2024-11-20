@@ -1,0 +1,18 @@
+registry: repo.local
+prefix: my-base
+maintainer: Awesome Developer <awesome@mail>
+
+images:
+  jdk:
+    dockerfile: jdk/Dockerfile.jinja2
+    variables:
+      alpine:
+        - "3.19"
+        - "3.20"
+      java:
+        - 11
+        - 17
+        - 21
+    labels:
+      - jdk:{{ tag }}-{{ java }}-alpine{{ alpine }}
+      - jdk:{{ java }}-alpine{{ alpine.split('.')[0] }}
