@@ -1,5 +1,6 @@
 import argparse
 import logging as log
+import os
 import sys
 
 import templater
@@ -22,9 +23,9 @@ def parse(argv=None):
         "--config",
         action="store",
         dest="CONFIG_FILE",
-        help="configuration file",
+        help="path to the configuration file",
+        type=is_valid_file,
         required=True,
-        default="build.yaml",
     )
 
     parser.add_argument(
@@ -106,6 +107,14 @@ def validate_threads(value):
         raise argparse.ArgumentTypeError(
             f"Invalid value for threads: {value}. Must be 'max' or a positive integer."
         )
+
+
+def is_valid_file(file_path):
+    if not os.path.isfile(file_path):
+        raise argparse.ArgumentTypeError(
+            f"The file '{file_path}' does not exist or is not a valid file."
+        )
+    return file_path
 
 
 def __getattr__(name):

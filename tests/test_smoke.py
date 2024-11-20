@@ -72,3 +72,12 @@ class TestSmokes:
         assert cmd.succeeded
         assert "DRY-RUN mode" in cmd.stdout
         assert "Pushing images" in cmd.stdout
+
+    def test_valid_config_file(self, host, cli):
+        cmd = host.run(" ".join([f"{cli}", "-c non-existent.yml"]))
+        assert cmd.failed
+        assert "error: " in cmd.stderr
+        assert (
+            "The file 'non-existent.yml' does not exist or is not a valid file"
+            in cmd.stderr
+        )
