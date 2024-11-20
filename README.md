@@ -1,6 +1,10 @@
 Template-Dockerfiles
 ====================
 
+[![build](https://github.com/tgagor/template-dockerfiles/actions/workflows/python-build-and-test.yml/badge.svg?branch=main)](https://github.com/tgagor/template-dockerfiles/actions/workflows/python-build-and-test.yml)
+![GitHub](https://img.shields.io/github/license/tgagor/template-dockerfiles)
+![GitHub Release Date](https://img.shields.io/github/release-date/tgagor/template-dockerfiles)
+
 A versatile Docker image builder that uses Jinja2 templates to dynamically generate Dockerfiles, validate configurations, and build container images efficiently. The app supports parameterized builds, parallel execution, and customization for streamlined container development.
 
 
