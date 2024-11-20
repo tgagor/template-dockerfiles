@@ -63,8 +63,10 @@ jobs:
         id: cache-pip
         uses: actions/cache@v3
         with:
-          path: ~/.cache/pip
-          key: cache-pip-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ matrix.poetry-version }}
+          path: |
+            ~/.cache/pip
+            ~/.local/bin
+          key: cache-pip-v1-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ matrix.poetry-version }}
 
       - name: Install Poetry with Pip
         if: steps.cache-pip.outputs.cache-hit != 'true'
@@ -82,10 +84,10 @@ jobs:
       - name: Install package dependencies with Poetry
         if: steps.cache-poetry-dependencies.cache-hit != 'true'
         run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
           python --version
           poetry run python --version | grep ${{ matrix.python-version }}
           poetry install
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Tests
         run: poetry run pytest -v

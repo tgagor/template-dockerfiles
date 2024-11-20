@@ -3,3 +3,5 @@ __pycache__
 *.pyc
 *.Dockerfile
 .poetry-version
+*.bak
+*.old
