@@ -31,5 +31,11 @@ repos:
   - repo: https://github.com/python-poetry/poetry.git
     rev: 1.8.0
     hooks:
-    - id: poetry-check
-      args: ["-C", "./python"]
+      - id: poetry-check
+        args: ["-C", "./python"]
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [--strict, --force-scope, feat, fix, chore, test, custom]
