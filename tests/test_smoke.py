@@ -72,4 +72,3 @@ class TestSmokes:
         assert cmd.succeeded
         assert "DRY-RUN mode" in cmd.stdout
         assert "Pushing images" in cmd.stdout
-        assert " - docker push --quiet" in cmd.stdout

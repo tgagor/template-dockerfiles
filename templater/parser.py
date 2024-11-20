@@ -160,6 +160,9 @@ def execute(playbook):
                 pusher.add(["docker", "push", "--quiet", img])
 
         pusher.run()
+        if flags.DRY_RUN:
+            imgs = "\n ".join(images_to_push)
+            log.warning(f"DRY-RUN mode, would push:\n {imgs}")
 
 
 def get_opencontainer_labels(playbook):
