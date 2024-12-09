@@ -7,6 +7,8 @@ import (
 	"log"
 )
 
+// var Version string // Will be set dynamically at build time.
+
 var (
 	// Define a struct that represents the command-line flags
 	options struct {
@@ -20,7 +22,7 @@ var (
 	}
 )
 
-func main() {
+func main_old() {
 	// Initialize the flag parser
 	parser := flags.NewParser(&options, flags.Default)
 
@@ -47,6 +49,10 @@ func main() {
 	fmt.Println("Threads:", options.Threads)
 	fmt.Println("Log Level:", options.LogLevel)
 	fmt.Println("Tag:", options.Tag)
+	if Version == "" {
+        Version = "development" // Fallback if not set during build
+    }
+    fmt.Println("Version:", Version)
 
 	// You can add any specific validation functions as needed, such as validating threads, etc.
 	// For example, you could check if threads is a valid number

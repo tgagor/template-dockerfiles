@@ -1,3 +1,5 @@
+# Old Python stuff
+
 __pycache__
 .venv
 *.pyc
@@ -5,3 +7,36 @@ __pycache__
 .poetry-version
 *.bak
 *.old
+
+# New Go Lang stuff
+# Go build artifacts
+/bin/
+# /pkg/
+/*.exe
+/*.exe~
+/*.dll
+/*.so
+/*.dylib
+/*.test
+
+# IDE and editor artifacts
+.idea/              # JetBrains IDEs (GoLand, etc.)
+.vscode/            # Visual Studio Code
+*.iml               # IntelliJ module files
+
+# OS-generated files
+.DS_Store           # macOS
+Thumbs.db           # Windows
+
+# Log files and temporary files
+*.log
+*.tmp
+*.out
+
+# Binary files
+*.o
+*.a
+
+.env
+.env.local
+*.env.*
