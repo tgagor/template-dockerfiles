@@ -1,4 +1,4 @@
-FROM alpine:{{ alpine }}
+FROM alpine:{{ .alpine }}
 
 # set default file encoding to UTF-8
 ENV LANG en_US.UTF-8

@@ -1,5 +1,0 @@
-FROM {% if registry is defined %}{{ registry }}/{% endif %}{% if prefix is defined %}{{ prefix }}/{% endif %}base:alpine{{ alpine }}
-
-RUN apk add --no-cache \
-        amazon-corretto-{{ java }} && \
-    java -version

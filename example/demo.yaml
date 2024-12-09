@@ -4,7 +4,7 @@ maintainer: Awesome Developer <awesome@mail>
 
 images:
   jdk:
-    dockerfile: jdk/Dockerfile.jinja2
+    dockerfile: jdk/Dockerfile.tpl
     variables:
       alpine:
         - "3.19"
@@ -13,6 +13,13 @@ images:
         - 11
         - 17
         - 21
+    excludes:
+      - alpine: "3.19"
+        java: 21
+      - alpine: "3.20"
+        java: 11
     labels:
-      - jdk:{{ tag }}-{{ java }}-alpine{{ alpine }}
-      - jdk:{{ java }}-alpine{{ alpine.split('.')[0] }}
+      - jdk:{{ .tag }}-{{ .java }}-alpine{{ .alpine }}
+      - jdk:{{ .tag }}-{{ .java }}
+      - jdk:{{ .tag }}
+      # - jdk:{{ .java }}-alpine{{ alpine.split('.')[0] }}

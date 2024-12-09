@@ -2,94 +2,127 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"log/slog"
 	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/spf13/cobra"
-	// "template-dockerfiles/pkg/config"
-	// "template-dockerfiles/pkg/flags"
-	// "template-dockerfiles/pkg/logger"
-	// "template-dockerfiles/pkg/parser"
+
+	"template-dockerfiles/pkg/config"
+	"template-dockerfiles/pkg/parser"
 	// "template-dockerfiles/pkg/runner"
 )
 
-var Version string // Will be set dynamically at build time.
+var version string // Will be set dynamically at build time.
+var appName string = "td"
+
 var (
-	configFile string
-	dryRun     bool
-	push       bool
-	parallel   int
-	tag        string
-	verbose    bool
-	version	   bool
+	buildFile    string
+	dryRun       bool
+	push         bool
+	threads      int
+	tag          string
+	verbose      bool
+	printVersion bool
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "template-dockerfiles",
+var cmd = &cobra.Command{
+	Use:   appName,
 	Short: "A Docker image builder that uses Go templates to dynamically generate Dockerfiles.",
-	Long:  `A CLI tool for building Docker images with configurable Dockerfile templates and multi-threaded execution.
+	Long: `A CLI tool for building Docker images with configurable Dockerfile templates and multi-threaded execution.
 
 When 'docker build' is just not enough. :-)`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		// Skip config file requirement if --version is provided
-		if version {
+		if printVersion {
 			return nil
 		}
 		// Validate config file if it's not provided and --version isn't invoked
-		if configFile == "" {
+		if buildFile == "" {
 			return fmt.Errorf("the --config flag is required")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		initLogger(verbose)
+
 		// If version flag is provided, show the version and exit.
-		if version {
-			fmt.Printf("template-dockerfiles version: %s\n", Version)
-			os.Exit(0)
+		if printVersion {
+			fmt.Printf("%s version: %s\n", appName, version)
+			return
 		}
 
 		// Main logic goes here
 		if verbose {
-			fmt.Println("Verbose mode enabled.")
+			slog.Debug("Verbose mode enabled.")
 		}
-		fmt.Printf("Using config file: %s\n", configFile)
 		if dryRun {
-			fmt.Println("Dry run enabled - no actions will be executed.")
+			slog.Info("Dry run enabled - no actions will be executed.")
 		}
 		if push {
-			fmt.Println("Images will be pushed after building.")
+			slog.Warn("Images will be pushed after building.")
 		}
-		fmt.Printf("Number of threads: %d\n", parallel)
+		slog.Info("Number of", "threads", threads)
 		if tag != "" {
-			fmt.Printf("Using tag: %s\n", tag)
+			slog.Info("Setting", "tag", tag)
+		}
+
+		// Parse configuration file
+		slog.Info("Loading", "config", buildFile)
+		cfg, err := config.Load(buildFile)
+		if err != nil {
+			slog.Error("Error loading config", "error", err)
+		}
+		slog.Debug("Loaded", "config", cfg)
+
+		// Run templating and image building
+		workdir := filepath.Dir(buildFile)
+		if err := parser.Run(workdir, cfg, map[string]any{
+			"tag": tag,
+			"dryRun": dryRun,
+			"threads": threads,
+		}); err != nil {
+			slog.Error("Error during parsing", "error", err)
+			os.Exit(1)
 		}
 	},
 }
 
 func init() {
-	if Version == "" {
-        Version = "development" // Fallback if not set during build
-    }
-	// fmt.Println("Version:", Version)
+	if version == "" {
+		version = "development" // Fallback if not set during build
+	}
 
-	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Path to the configuration file (required)")
-	rootCmd.MarkPersistentFlagRequired("config")
+	cmd.PersistentFlags().StringVarP(&buildFile, "config", "c", "", "Path to the configuration file (required)")
+	// rootCmd.MarkPersistentFlagRequired("config")
 
-	rootCmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print actions but don't execute them")
-	rootCmd.Flags().BoolVar(&push, "push", false, "Push Docker images after building")
-	rootCmd.Flags().IntVarP(&parallel, "parallel", "p", runtime.NumCPU(), "Specify the number of threads to use (default: number of CPUs)")
-	rootCmd.Flags().StringVarP(&tag, "tag", "t", "", "Tag to use as the image version")
-	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Increase verbosity of output")
-	rootCmd.Flags().BoolVarP(&version, "version", "V", false, "Display the application version and exit")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print actions but don't execute them")
+	cmd.Flags().BoolVar(&push, "push", false, "Push Docker images after building")
+	cmd.Flags().IntVarP(&threads, "parallel", "p", runtime.NumCPU(), "Specify the number of threads to use (default: number of CPUs)")
+	cmd.Flags().StringVarP(&tag, "tag", "t", "", "Tag to use as the image version")
+	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Increase verbosity of output")
+	cmd.Flags().BoolVarP(&printVersion, "version", "V", false, "Display the application version and exit")
 }
 
 func main() {
-	if err := rootCmd.Execute(); err != nil {
+	if err := cmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 }
 
+func initLogger(verbose bool) {
+	// Disable timestamp in logger
+	log.SetFlags(log.Flags() &^ (log.Ldate | log.Ltime))
+	// Configure log level
+	if verbose {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+	} else {
+		slog.SetLogLoggerLevel(slog.LevelInfo)
+	}
+}
 
 // func main() {
 //     // Initialize flags
