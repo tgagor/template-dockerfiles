@@ -8,6 +8,28 @@ Template-Dockerfiles
 A versatile Docker image builder that uses Jinja2 templates to dynamically generate Dockerfiles, validate configurations, and build container images efficiently. The app supports parameterized builds, parallel execution, and customization for streamlined container development.
 
 
+## **Parameters**
+
+```bash
+usage: template-dockerfiles [-h] -c CONFIG_FILE [--dry-run] [--push] [--parallel THREADS] [-v] [--version] -t TAG
+
+A Docker image builder that uses Jinja2 templates to dynamically generate Dockerfiles.
+
+options:
+  -h, --help            show this help message and exit
+  -c, --config CONFIG_FILE
+                        configuration file
+  --dry-run             print what would be done, but don't do anything
+  --push                push Docker images when successfully build
+  --parallel THREADS    specify the number of threads to use (default: number of CPUs).
+  -v, --verbose         be verbose
+  --version             show the version of the application and exit
+  -t, --tag TAG         tag that could be used as an image version
+
+When 'docker build' is just not enough :-)
+```
+
+
 ## **Configuration Format**
 
 This file format defines the configuration for dynamically generating Docker images using Jinja2 templates. It specifies global settings, image definitions, and build parameters.
@@ -147,25 +169,3 @@ Order of values under `variables` block is used to determine the order of labels
 ## **Advanced Tips**
 
 1. **Dynamic Tags**: Use Jinja2 expressions like `{{ os.split('.')[0] }}` to generate tags dynamically.
-
-Parameters
-----------
-
-```bash
-usage: template-dockerfiles [-h] -c CONFIG_FILE [--dry-run] [--push] [--parallel THREADS] [-v] [--version] -t TAG
-
-A Docker image builder that uses Jinja2 templates to dynamically generate Dockerfiles.
-
-options:
-  -h, --help            show this help message and exit
-  -c, --config CONFIG_FILE
-                        configuration file
-  --dry-run             print what would be done, but don't do anything
-  --push                push Docker images when successfully build
-  --parallel THREADS    specify the number of threads to use (default: number of CPUs).
-  -v, --verbose         be verbose
-  --version             show the version of the application and exit
-  -t, --tag TAG         tag that could be used as an image version
-
-When 'docker build' is just not enough :-)
-```
