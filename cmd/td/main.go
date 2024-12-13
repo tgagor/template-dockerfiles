@@ -14,7 +14,7 @@ import (
 	"td/pkg/parser"
 )
 
-var version string // Will be set dynamically at build time.
+var Version string // Will be set dynamically at build time.
 var appName string = "td"
 var flags config.Flags
 
@@ -40,7 +40,7 @@ When 'docker build' is just not enough. :-)`,
 
 		// If version flag is provided, show the version and exit.
 		if flags.PrintVersion {
-			fmt.Printf("%s version: %s\n", appName, version)
+			fmt.Printf("%s version: %s\n", appName, Version)
 			return
 		}
 
@@ -77,8 +77,8 @@ When 'docker build' is just not enough. :-)`,
 }
 
 func init() {
-	if version == "" {
-		version = "development" // Fallback if not set during build
+	if Version == "" {
+		Version = "development" // Fallback if not set during build
 	}
 
 	cmd.PersistentFlags().StringVarP(&flags.BuildFile, "config", "c", "", "Path to the configuration file (required)")
