@@ -10,26 +10,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"template-dockerfiles/pkg/config"
-	"template-dockerfiles/pkg/parser"
-	// "template-dockerfiles/pkg/runner"
+	"td/pkg/config"
+	"td/pkg/parser"
 )
 
 var version string // Will be set dynamically at build time.
 var appName string = "td"
-
-// var (
-// 	buildFile    string
-// 	dryRun       bool
-// 	push         bool
-// 	threads      int
-// 	tag          string
-// 	verbose      bool
-// 	printVersion bool
-// )
-
-
-
 var flags config.Flags
 
 var cmd = &cobra.Command{

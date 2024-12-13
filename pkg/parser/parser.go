@@ -14,9 +14,9 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 
-	"template-dockerfiles/pkg/cmd"
-	"template-dockerfiles/pkg/config"
-	"template-dockerfiles/pkg/runner"
+	"td/pkg/cmd"
+	"td/pkg/config"
+	"td/pkg/runner"
 )
 
 func Run(workdir string, cfg *config.Config, flag config.Flags) error {
