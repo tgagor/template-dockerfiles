@@ -14,9 +14,8 @@ images:
     labels:
       - base:{{ .tag }}-alpine{{ .alpine }}
       - base:alpine{{ .alpine }}
-      # - base:{{ .tag }}-alpine{{ index (split "." .alpine) 0 }}
-      # - base:{{ .tag }}-alpine{{ .alpine | split "." | first }}
-      # - base:alpine{{ index (split "." .alpine) 0 }}
+      - base:{{ .tag }}-alpine{{ .alpine | splitList "." | first }}
+      - base:alpine{{ .alpine | splitList "." | first }}
       - base:{{ .tag }}-alpine
       - base:{{ .tag }}
       - base:alpine
@@ -26,6 +25,7 @@ images:
     dockerfile: jdk/Dockerfile.tpl
     variables:
       alpine:
+        - "3.18"
         - "3.19"
         - "3.20"
       java:
@@ -41,7 +41,7 @@ images:
     labels:
       - jdk:{{ .tag }}-{{ .java }}-alpine{{ .alpine }}
       - jdk:{{ .java }}-alpine{{ .alpine }}
-      # - jdk:{{ .java }}-alpine{{ index (split "." .alpine) 0 }}
+      - jdk:{{ .java }}-alpine{{ .alpine | splitList "." | first }}
       - jdk:{{ .tag }}-{{ .java }}-alpine
       - jdk:{{ .tag }}-{{ .java }}
       - jdk:{{ .java }}-alpine
@@ -65,7 +65,7 @@ images:
     labels:
       - jre:{{ .tag }}-{{ .java }}-alpine{{ .alpine }}
       - jre:{{ .java }}-alpine{{ .alpine }}
-      # - jre:{{ .java }}-alpine{{ index (split "." .alpine) 0 }}
+      - jre:{{ .java }}-alpine{{ .alpine | splitList "." | first }}
       - jre:{{ .tag }}-{{ .java }}-alpine
       - jre:{{ .tag }}-{{ .java }}
       - jre:{{ .java }}-alpine

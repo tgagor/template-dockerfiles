@@ -1,0 +1,15 @@
+---
+registry: repo.local
+prefix: alpine
+maintainer: Tomasz Gągor <tomasz@gagor.pl>
+
+images:
+  base:
+    dockerfile: base/Dockerfile.tpl
+    variables:
+      alpine:
+        - "3.18"
+        - "3.19"
+        - "3.20"
+    labels:
+      - base:{{ .tag }}-alpine{{ .alpine }}

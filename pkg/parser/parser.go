@@ -37,6 +37,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 		buildTasks := runner.New().Threads(flag.Threads).DryRun(flag.DryRun)
 		// labelling have to happen in order, so no parallelism
 		labelingTasks := runner.New().DryRun(flag.DryRun)
+		pushTasks := runner.New().Threads(flag.Threads).DryRun(flag.DryRun)
 		cleanupTasks := runner.New().Threads(flag.Threads).DryRun(flag.DryRun)
 		for _, configSet := range combinations {
 			configSet["tag"] = flag.Tag
@@ -61,7 +62,9 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			dockerfile := getDockerfilePath(dockerfileTemplate, configSet)
 			slog.Debug("Generating temporary Dockerfile: " + dockerfile)
 			tempFiles = append(tempFiles, dockerfile)
-			currentImage := getCombinationString(configSet)
+			slog.Debug("Tempfiles", "files", tempFiles)
+			// name required to avoid collisions between images
+			currentImage := name + "-" + getCombinationString(configSet)
 			if err := templateFile(dockerfileTemplate, dockerfile, configSet); err != nil {
 				return err
 			}
@@ -84,9 +87,17 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 					Arg(imageName(cfg.Registry, cfg.Prefix, l)).
 					SetVerbose(flag.Verbose)
 				labelingTasks = labelingTasks.AddTask(labeler)
+
+				pusher := cmd.New("docker").
+					Arg("push").
+					Arg(imageName(cfg.Registry, cfg.Prefix, l))
+					if !flag.Verbose {
+						pusher.Arg("--quiet")
+					}
+				pushTasks = pushTasks.AddTask(pusher)
 			}
 
-			// collect cleanup tasks
+			// remove teporary labels
 			dropTempLabel := cmd.New("docker").
 				Arg("image", "rm", "-f").
 				Arg(currentImage).
@@ -97,6 +108,10 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 		buildTasks.RunParallel()
 		labelingTasks.Run()
 		cleanupTasks.RunParallel()
+		if flag.Push {
+			slog.Info("Pushing images")
+			pushTasks.Run()
+		}
 
 		// Cleanup temporary files
 		for _, file := range tempFiles {
@@ -286,7 +301,6 @@ func isExcluded(item map[string]interface{}, excludes []map[string]string) bool 
 			return true
 		}
 	}
-	slog.Debug("Result: false")
 	return false
 }
 

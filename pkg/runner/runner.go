@@ -20,8 +20,23 @@ func New() Runner {
 	}
 }
 
+func (r Runner) Contains(task cmd.Cmd) bool {
+	for _,t := range r.tasks {
+		if t.Equal(task) {
+			slog.Debug("Equals!!!", "a", r, "b", t)
+			return true
+		}
+	}
+	return false
+}
+
 func (r Runner) AddTask(task ...cmd.Cmd) Runner {
-	r.tasks = append(r.tasks, task...)
+	// add only uniq calls
+	for _,t := range task {
+		if !r.Contains(t) {
+			r.tasks = append(r.tasks, t)
+		}
+	}
 	return r
 }
 
@@ -67,13 +82,14 @@ func (r Runner) RunParallel() error {
 
 	// use minimum required amount of workers
 	threads := min(r.threads, len(r.tasks))
+	slog.Debug("Aquired parallelism", "threads", threads, "max", max(r.threads, len(r.tasks)))
 
 	// Start the specified number of workers.
 	for i := 0; i < threads; i++ {
 		wg.Add(1)
 		go func() error {
 			defer wg.Done()
-			for _, c := range r.tasks {
+			for c := range tasks {
 				if r.dryRun {
 					slog.Debug("DRY-RUN: Run", "cmd", c.String())
 				} else {

@@ -13,10 +13,22 @@ type Cmd struct {
 	verbose bool
 }
 
-func New(cmd string) Cmd {
+func New(c string) Cmd {
 	return Cmd{
-		cmd: cmd,
+		cmd: c,
 	}
+}
+
+func (c Cmd) Equal(cmd Cmd) bool {
+	if c.cmd != cmd.cmd || c.verbose == cmd.verbose {
+		return false
+	}
+	for i,a := range c.args {
+		if a != cmd.args[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func (c Cmd) Arg(args ...string) Cmd {
