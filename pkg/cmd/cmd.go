@@ -20,15 +20,7 @@ func New(c string) Cmd {
 }
 
 func (c Cmd) Equal(cmd Cmd) bool {
-	if c.cmd != cmd.cmd || c.verbose == cmd.verbose {
-		return false
-	}
-	for i,a := range c.args {
-		if a != cmd.args[i] {
-			return false
-		}
-	}
-	return true
+	return c.String() == cmd.String()
 }
 
 func (c Cmd) Arg(args ...string) Cmd {

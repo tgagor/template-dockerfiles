@@ -23,7 +23,6 @@ func New() Runner {
 func (r Runner) Contains(task cmd.Cmd) bool {
 	for _,t := range r.tasks {
 		if t.Equal(task) {
-			slog.Debug("Equals!!!", "a", r, "b", t)
 			return true
 		}
 	}
