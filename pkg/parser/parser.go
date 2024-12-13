@@ -40,11 +40,14 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 		pushTasks := runner.New().Threads(flag.Threads).DryRun(flag.DryRun)
 		cleanupTasks := runner.New().Threads(flag.Threads).DryRun(flag.DryRun)
 		for _, configSet := range combinations {
+			// FIXME: This way of setting variables might collide with overrides
+			// 		  set in "variables" section, I need to change order here.
+			//		  New Map should be created with "config defaults", then
+			//		  current configSet applied over it, and merged with cfg.
 			configSet["tag"] = flag.Tag
 			configSet["registry"] = cfg.Registry
 			configSet["prefix"] = cfg.Prefix
 			configSet["maintainer"] = cfg.Maintainer
-			// slog.Debug("Per image", "config set", configSet)
 			slog.Info("Building", "image", name, "config set", configSet)
 
 			if isExcluded(configSet, img.Excludes) {
