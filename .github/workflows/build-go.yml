@@ -8,10 +8,21 @@
 
 name: Build & Tests
 
+# on:
+#   push:
+#     tags:
+#       - "v*"
 on:
   push:
+    branches:
+      - main
+      - feature/*
+      - bugfix/*
     tags:
-      - "v*"
+      - 'v*.*.*'
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
@@ -25,10 +36,16 @@ jobs:
       run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
     - name: Build Application
-      run: go build -ldflags="-X main.Version=${VERSION}" -o bin/template-dockerfiles ./cmd/template-dockerfiles
+      run: |
+        go build \
+          -ldflags="-X main.Version=${VERSION}" \
+          -o bin/td \
+          ./cmd/td
+        ./bin/td -V
 
-    - name: Upload Release Binary
-      uses: actions/upload-artifact@v3
-      with:
-        name: template-dockerfiles
-        path: bin/template-dockerfiles
+
+    # - name: Upload Release Binary
+    #   uses: actions/upload-artifact@v3
+    #   with:
+    #     name: template-dockerfiles
+    #     path: bin/td
