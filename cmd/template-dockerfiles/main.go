@@ -18,15 +18,19 @@ import (
 var version string // Will be set dynamically at build time.
 var appName string = "td"
 
-var (
-	buildFile    string
-	dryRun       bool
-	push         bool
-	threads      int
-	tag          string
-	verbose      bool
-	printVersion bool
-)
+// var (
+// 	buildFile    string
+// 	dryRun       bool
+// 	push         bool
+// 	threads      int
+// 	tag          string
+// 	verbose      bool
+// 	printVersion bool
+// )
+
+
+
+var flags config.Flags
 
 var cmd = &cobra.Command{
 	Use:   appName,
@@ -36,54 +40,50 @@ var cmd = &cobra.Command{
 When 'docker build' is just not enough. :-)`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		// Skip config file requirement if --version is provided
-		if printVersion {
+		if flags.PrintVersion {
 			return nil
 		}
 		// Validate config file if it's not provided and --version isn't invoked
-		if buildFile == "" {
+		if flags.BuildFile == "" {
 			return fmt.Errorf("the --config flag is required")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		initLogger(verbose)
+		initLogger(flags.Verbose)
 
 		// If version flag is provided, show the version and exit.
-		if printVersion {
+		if flags.PrintVersion {
 			fmt.Printf("%s version: %s\n", appName, version)
 			return
 		}
 
 		// Main logic goes here
-		if verbose {
+		if flags.Verbose {
 			slog.Debug("Verbose mode enabled.")
 		}
-		if dryRun {
+		if flags.DryRun {
 			slog.Info("Dry run enabled - no actions will be executed.")
 		}
-		if push {
+		if flags.Push {
 			slog.Warn("Images will be pushed after building.")
 		}
-		slog.Info("Number of", "threads", threads)
-		if tag != "" {
-			slog.Info("Setting", "tag", tag)
+		slog.Info("Number of", "threads", flags.Threads)
+		if flags.Tag != "" {
+			slog.Info("Setting", "tag", flags.Tag)
 		}
 
 		// Parse configuration file
-		slog.Info("Loading", "config", buildFile)
-		cfg, err := config.Load(buildFile)
+		slog.Info("Loading", "config", flags.BuildFile)
+		cfg, err := config.Load(flags.BuildFile)
 		if err != nil {
 			slog.Error("Error loading config", "error", err)
 		}
 		slog.Debug("Loaded", "config", cfg)
 
 		// Run templating and image building
-		workdir := filepath.Dir(buildFile)
-		if err := parser.Run(workdir, cfg, map[string]any{
-			"tag": tag,
-			"dryRun": dryRun,
-			"threads": threads,
-		}); err != nil {
+		workdir := filepath.Dir(flags.BuildFile)
+		if err := parser.Run(workdir, cfg, flags); err != nil {
 			slog.Error("Error during parsing", "error", err)
 			os.Exit(1)
 		}
@@ -95,15 +95,15 @@ func init() {
 		version = "development" // Fallback if not set during build
 	}
 
-	cmd.PersistentFlags().StringVarP(&buildFile, "config", "c", "", "Path to the configuration file (required)")
+	cmd.PersistentFlags().StringVarP(&flags.BuildFile, "config", "c", "", "Path to the configuration file (required)")
 	// rootCmd.MarkPersistentFlagRequired("config")
 
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print actions but don't execute them")
-	cmd.Flags().BoolVar(&push, "push", false, "Push Docker images after building")
-	cmd.Flags().IntVarP(&threads, "parallel", "p", runtime.NumCPU(), "Specify the number of threads to use (default: number of CPUs)")
-	cmd.Flags().StringVarP(&tag, "tag", "t", "", "Tag to use as the image version")
-	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Increase verbosity of output")
-	cmd.Flags().BoolVarP(&printVersion, "version", "V", false, "Display the application version and exit")
+	cmd.Flags().BoolVar(&flags.DryRun, "dry-run", false, "Print actions but don't execute them")
+	cmd.Flags().BoolVar(&flags.Push, "push", false, "Push Docker images after building")
+	cmd.Flags().IntVarP(&flags.Threads, "parallel", "p", runtime.NumCPU(), "Specify the number of threads to use (default: number of CPUs)")
+	cmd.Flags().StringVarP(&flags.Tag, "tag", "t", "", "Tag to use as the image version")
+	cmd.Flags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Increase verbosity of output")
+	cmd.Flags().BoolVarP(&flags.PrintVersion, "version", "V", false, "Display the application version and exit")
 }
 
 func main() {

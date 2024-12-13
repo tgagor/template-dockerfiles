@@ -19,7 +19,6 @@ RUN apk add --no-cache tzdata && \
 # install dependencies/tools
 # https://github.com/krallin/tini
 RUN apk add --no-cache \
-        # curl \
         tini
 
 ENTRYPOINT ["/sbin/tini", "--"]

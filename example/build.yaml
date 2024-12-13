@@ -14,11 +14,13 @@ images:
     labels:
       - base:{{ .tag }}-alpine{{ .alpine }}
       - base:alpine{{ .alpine }}
-      # - base:{{ .tag }}-alpine{{ alpine.split('.')[0] }}
-      # - base:alpine{{ alpine.split('.')[0] }}
+      # - base:{{ .tag }}-alpine{{ index (split "." .alpine) 0 }}
+      # - base:{{ .tag }}-alpine{{ .alpine | split "." | first }}
+      # - base:alpine{{ index (split "." .alpine) 0 }}
       - base:{{ .tag }}-alpine
       - base:{{ .tag }}
       - base:alpine
+      - base
 
   jdk:
     dockerfile: jdk/Dockerfile.tpl
@@ -39,11 +41,12 @@ images:
     labels:
       - jdk:{{ .tag }}-{{ .java }}-alpine{{ .alpine }}
       - jdk:{{ .java }}-alpine{{ .alpine }}
-      # - jdk:{{ .java }}-alpine{{ alpine.split('.')[0] }}
+      # - jdk:{{ .java }}-alpine{{ index (split "." .alpine) 0 }}
       - jdk:{{ .tag }}-{{ .java }}-alpine
       - jdk:{{ .tag }}-{{ .java }}
       - jdk:{{ .java }}-alpine
       - jdk:{{ .tag }}
+      - jdk
 
   jre:
     dockerfile: jre/Dockerfile.tpl
@@ -56,12 +59,16 @@ images:
         - 17
         - 21
         - 23
+    excludes:
+      - alpine: "3.20"
+        java: 11
     labels:
       - jre:{{ .tag }}-{{ .java }}-alpine{{ .alpine }}
       - jre:{{ .java }}-alpine{{ .alpine }}
-      # - jre:{{ .java }}-alpine{{ alpine.split('.')[0] }}
+      # - jre:{{ .java }}-alpine{{ index (split "." .alpine) 0 }}
       - jre:{{ .tag }}-{{ .java }}-alpine
       - jre:{{ .tag }}-{{ .java }}
       - jre:{{ .java }}-alpine
       - jre:{{ .java }}
       - jre:{{ .tag }}
+      - jre

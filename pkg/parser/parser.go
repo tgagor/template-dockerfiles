@@ -5,18 +5,21 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
 	"text/template"
 
+	"github.com/Masterminds/sprig/v3"
+
 	"template-dockerfiles/pkg/cmd"
 	"template-dockerfiles/pkg/config"
 	"template-dockerfiles/pkg/runner"
 )
 
-func Run(workdir string, cfg *config.Config, args map[string]any) error {
+func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 	for name, img := range cfg.Images {
 		slog.Debug("Analyzing", "image", name, "config", img)
 		dockerfileTemplate := filepath.Join(workdir, img.Dockerfile)
@@ -30,13 +33,18 @@ func Run(workdir string, cfg *config.Config, args map[string]any) error {
 
 		// var labels []string
 		var tempFiles []string
-		buildTasks := runner.New().Threads(args["threads"]).DryRun(args.dryRun)
-		labelingTasks := runner.New().Threads(args["threads"]).DryRun(args.dryRun)
-		cleanupTasks := runner.New().Threads(args["threads"].(int)).DryRun(args.dryRun)
+
+		buildTasks := runner.New().Threads(flag.Threads).DryRun(flag.DryRun)
+		// labelling have to happen in order, so no parallelism
+		labelingTasks := runner.New().DryRun(flag.DryRun)
+		cleanupTasks := runner.New().Threads(flag.Threads).DryRun(flag.DryRun)
 		for _, configSet := range combinations {
-			configSet["tag"] = tag
-			slog.Debug("Per image", "config set", configSet)
-			slog.Info("Building", "image", name)
+			configSet["tag"] = flag.Tag
+			configSet["registry"] = cfg.Registry
+			configSet["prefix"] = cfg.Prefix
+			configSet["maintainer"] = cfg.Maintainer
+			// slog.Debug("Per image", "config set", configSet)
+			slog.Info("Building", "image", name, "config set", configSet)
 
 			if isExcluded(configSet, img.Excludes) {
 				slog.Debug("Skipping excluded", "config set", configSet, "excludes", img.Excludes)
@@ -51,18 +59,12 @@ func Run(workdir string, cfg *config.Config, args map[string]any) error {
 			slog.Debug("Generated labels: " + strings.Join(labels, ", "))
 
 			dockerfile := getDockerfilePath(dockerfileTemplate, configSet)
-			tempFiles = append(tempFiles, dockerfile)
 			slog.Debug("Generating temporary Dockerfile: " + dockerfile)
-
-			// registry := cfg.Registry
-			// prefix = cfg.Prefix
-			// image_params = collect_params(config_set, playbook)
-			// templated_dockerfile = template_file(template_path, image_params)
-			// labels = collect_labels(config_set, params["labels"])
-			// dockerfile = get_dockerfile_path(template_path, config_set)
-			// temp_files.append(dockerfile)  # for later cleanup
-
-			currentImage := getCombination(configSet)
+			tempFiles = append(tempFiles, dockerfile)
+			currentImage := getCombinationString(configSet)
+			if err := templateFile(dockerfileTemplate, dockerfile, configSet); err != nil {
+				return err
+			}
 
 			// collect building image commands
 			builder := cmd.New("docker").
@@ -70,40 +72,35 @@ func Run(workdir string, cfg *config.Config, args map[string]any) error {
 				Arg("-f", dockerfile).
 				Arg("-t", currentImage).
 				// TODO: Add opencontainer labels automatically
-				Arg(filepath.Dir(dockerfileTemplate))
+				Arg(filepath.Dir(dockerfileTemplate)).
+				SetVerbose(flag.Verbose)
 			buildTasks = buildTasks.AddTask(builder)
 
 			// collect labelling commands to keep order
 			for _, l := range labels {
-
 				labeler := cmd.New("docker").
 					Arg("tag").
 					Arg(currentImage).
-					Arg(imageName(cfg.Registry, cfg.Prefix, l))
+					Arg(imageName(cfg.Registry, cfg.Prefix, l)).
+					SetVerbose(flag.Verbose)
 				labelingTasks = labelingTasks.AddTask(labeler)
 			}
 
 			// collect cleanup tasks
 			dropTempLabel := cmd.New("docker").
-				Arg("image", "rm").
-				Arg(currentImage)
+				Arg("image", "rm", "-f").
+				Arg(currentImage).
+				SetVerbose(flag.Verbose)
 			cleanupTasks = cleanupTasks.AddTask(dropTempLabel)
-
-			if err := templateFile(dockerfileTemplate, dockerfile, configSet); err != nil {
-				return err
-			}
 		}
 
-		buildTasks.Run()
+		buildTasks.RunParallel()
 		labelingTasks.Run()
-		cleanupTasks.Run()
+		cleanupTasks.RunParallel()
 
 		// Cleanup temporary files
 		for _, file := range tempFiles {
-			slog.Debug("Removing temporary file: " + file)
-			if err := os.Remove(file); err != nil {
-				slog.Error("Failed to remove file", slog.Any("error", err))
-			}
+			defer removeFile(file)
 		}
 
 		fmt.Println("")
@@ -184,7 +181,7 @@ func templateLabels(labelTemplates []string, configSet map[string]interface{}) (
 
 func templateString(pattern string, args map[string]interface{}) (string, error) {
 	var output bytes.Buffer
-	t := template.Must(template.New(pattern).Parse(pattern))
+	t := template.Must(template.New(pattern).Funcs(sprig.TxtFuncMap()).Parse(pattern))
 	if err := t.Execute(&output, args); err != nil {
 		return "", err
 	}
@@ -193,17 +190,16 @@ func templateString(pattern string, args map[string]interface{}) (string, error)
 }
 
 func templateFile(templateFile string, destinationFile string, args map[string]interface{}) error {
-	t, err := template.ParseFiles(templateFile)
-	if err != nil {
-		slog.Error("Failed to parse file: "+templateFile, "error", err)
-		return err
-	}
+	t := template.Must(
+		template.New(path.Base(templateFile)).Funcs(sprig.TxtFuncMap()).ParseFiles(templateFile),
+	)
 
 	f, err := os.Create(destinationFile)
 	if err != nil {
 		slog.Error("Failed to create a file: "+templateFile, "error", err)
 		return err
 	}
+	defer f.Close()
 
 	// var w io.Writer = f
 	// if isDebugLevel() {
@@ -217,13 +213,15 @@ func templateFile(templateFile string, destinationFile string, args map[string]i
 		return err
 	}
 
-	return f.Close()
+	return nil
 }
 
-func getCombination(configSet map[string]interface{}) string {
+func getCombinationString(configSet map[string]interface{}) string {
 	var parts []string
 	for k, v := range configSet {
-		parts = append(parts, fmt.Sprintf("%s-%s", k, v))
+		if !ignoredKey(k) {
+			parts = append(parts, fmt.Sprintf("%s-%s", k, v))
+		}
 	}
 	sort.Strings(parts)
 	return strings.Join(parts, "-")
@@ -231,7 +229,7 @@ func getCombination(configSet map[string]interface{}) string {
 
 func getDockerfilePath(dockerFileTemplate string, configSet map[string]interface{}) string {
 	dirname := filepath.Dir(dockerFileTemplate)
-	filename := getCombination(configSet) + ".Dockerfile"
+	filename := getCombinationString(configSet) + ".Dockerfile"
 	return filepath.Join(dirname, filename)
 }
 
@@ -239,10 +237,22 @@ func imageName(registry string, prefix string, name string) string {
 	return filepath.Join(registry, prefix, name)
 }
 
+func ignoredKey(key string) bool {
+	switch key {
+	case
+		"registry",
+		"prefix",
+		"maintainer",
+		"tag":
+		return true
+	}
+	return false
+}
+
 func CopyMapNoTag(m map[string]interface{}) map[string]interface{} {
 	cp := make(map[string]interface{})
 	for k, v := range m {
-		if k == "tag" {
+		if ignoredKey(k) {
 			continue
 		}
 		vm, ok := v.(map[string]interface{})
@@ -278,4 +288,11 @@ func isExcluded(item map[string]interface{}, excludes []map[string]string) bool 
 	}
 	slog.Debug("Result: false")
 	return false
+}
+
+func removeFile(file string) {
+	slog.Debug("Removing temporary file: " + file)
+	if err := os.Remove(file); err != nil {
+		slog.Error("Failed to remove file", slog.Any("error", err))
+	}
 }

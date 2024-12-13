@@ -49,10 +49,10 @@ func (r Runner) Run() error {
 }
 
 func (r Runner) RunParallel() error {
-	// Workers get URLs from this channel
+	// Workers get tasks from this channel
 	tasks := make(chan cmd.Cmd)
 
-	// Feed the workers with URLs
+	// Feed the workers with tasks
 	go func() {
 		for _, c := range r.tasks {
 			tasks <- c
@@ -65,14 +65,24 @@ func (r Runner) RunParallel() error {
 
 	results := make(chan error)
 
+	// use minimum required amount of workers
+	threads := min(r.threads, len(r.tasks))
+
 	// Start the specified number of workers.
-	for i := 0; i < *parallel; i++ {
+	for i := 0; i < threads; i++ {
 		wg.Add(1)
-		go func() {
+		go func() error {
 			defer wg.Done()
-			for url := range urls {
-				worker(url, client, results)
+			for _, c := range r.tasks {
+				if r.dryRun {
+					slog.Debug("DRY-RUN: Run", "cmd", c.String())
+				} else {
+					if err := c.Run(); err != nil {
+						return err
+					}
+				}
 			}
+			return nil
 		}()
 	}
 
@@ -83,8 +93,10 @@ func (r Runner) RunParallel() error {
 	}()
 
 	for res := range results {
-		fmt.Println(res)
+		slog.Debug("Print", "result", res)
 	}
+
+	return <-results
 }
 
 // import (

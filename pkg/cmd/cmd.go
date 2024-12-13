@@ -8,8 +8,9 @@ import (
 )
 
 type Cmd struct {
-	cmd  string
-	args []string
+	cmd     string
+	args    []string
+	verbose bool
 }
 
 func New(cmd string) Cmd {
@@ -23,17 +24,25 @@ func (c Cmd) Arg(args ...string) Cmd {
 	return c
 }
 
+func (c Cmd) SetVerbose(verbosity bool) Cmd {
+	c.verbose = verbosity
+	return c
+}
+
 func (c Cmd) Run() error {
 	cmd := exec.Command(c.cmd, c.args...)
 
 	// pipe the commands output to the applications
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	if c.verbose {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
 
 	slog.Debug("Running", "cmd", c.cmd, "args", c.args)
 	if err := cmd.Run(); err != nil {
 		slog.Error("Could not run command", "error", err)
-		return err
+		panic("Command " + cmd.String() + " failed!")
+		// return err
 	}
 	return nil
 }
