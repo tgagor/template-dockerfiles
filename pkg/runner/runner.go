@@ -14,14 +14,14 @@ type Runner struct {
 
 func New() Runner {
 	return Runner{
-		tasks:  []cmd.Cmd{},
-		dryRun: false,
+		tasks:   []cmd.Cmd{},
+		dryRun:  false,
 		threads: 1,
 	}
 }
 
 func (r Runner) Contains(task cmd.Cmd) bool {
-	for _,t := range r.tasks {
+	for _, t := range r.tasks {
 		if t.Equal(task) {
 			return true
 		}
@@ -31,7 +31,7 @@ func (r Runner) Contains(task cmd.Cmd) bool {
 
 func (r Runner) AddTask(task ...cmd.Cmd) Runner {
 	// add only uniq calls
-	for _,t := range task {
+	for _, t := range task {
 		if !r.Contains(t) {
 			r.tasks = append(r.tasks, t)
 		}

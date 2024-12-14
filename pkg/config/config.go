@@ -1,8 +1,9 @@
 package config
 
 import (
-	"gopkg.in/yaml.v3"
 	"os"
+
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
@@ -13,10 +14,10 @@ type Config struct {
 }
 
 type ImageConfig struct {
-	Dockerfile string                `yaml:"dockerfile"`
-	Variables  map[string][]string   `yaml:"variables"`
-	Excludes   []map[string]string   `yaml:"excludes"`
-	Labels     []string              `yaml:"labels"`
+	Dockerfile string              `yaml:"dockerfile"`
+	Variables  map[string][]string `yaml:"variables"`
+	Excludes   []map[string]string `yaml:"excludes"`
+	Labels     []string            `yaml:"labels"`
 }
 
 func Load(filename string) (*Config, error) {
