@@ -129,18 +129,16 @@ jobs:
         run: |
           chmod +x ${{ matrix.binary }}
           ./${{ matrix.binary }} -V
-          ./${{ matrix.binary }} \
-            --config example/build.yaml \
-            --tag ${VERSION} \
-            --push \
-            --dry-run
+          ./${{ matrix.binary }} --config tests/test-1.yaml --tag ${VERSION} --push --dry-run
+          ./${{ matrix.binary }} --config tests/test-2.yaml --tag ${VERSION} --push --dry-run
 
       - name: Run test on Windows
         if: matrix.os == 'windows-latest'
         shell: cmd
         run: |
           .\\${{ matrix.binary }} -V
-          .\\${{ matrix.binary }} --config example/build.yaml --tag ${VERSION} --push --dry-run
+          .\\${{ matrix.binary }} --config tests/test-1.yaml --tag ${VERSION} --push --dry-run
+          .\\${{ matrix.binary }} --config tests/test-2.yaml --tag ${VERSION} --push --dry-run
 
   release:
     runs-on: ubuntu-latest

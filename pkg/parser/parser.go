@@ -22,6 +22,7 @@ import (
 	// "td/pkg/util"
 )
 
+// TODO: I should split this method to smaller chunks
 func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 	for name, img := range cfg.Images {
 		slog.Debug("Analyzing", "image", name, "config", img)
@@ -70,7 +71,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 				return err
 			}
 			if len(tags) > 0 {
-				slog.Info("Generating tags")
+				slog.Info("Generating tags:")
 				for _, t := range tags {
 					slog.Info("  ", "tag", t)
 				}
@@ -85,7 +86,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 				return err
 			}
 			if len(labels) > 0 {
-				slog.Info("Generating labels")
+				slog.Info("Generating labels:")
 				for l, v := range labels {
 					slog.Info("  ", l, v)
 				}
