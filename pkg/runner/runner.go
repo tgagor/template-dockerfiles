@@ -86,18 +86,18 @@ func (r Runner) RunParallel() error {
 	// Start the specified number of workers.
 	for i := 0; i < threads; i++ {
 		wg.Add(1)
-		go func() error {
+		go func() {
 			defer wg.Done()
 			for c := range tasks {
 				if r.dryRun {
 					slog.Debug("DRY-RUN: Run", "cmd", c.String())
 				} else {
 					if err := c.Run(); err != nil {
-						return err
+						results <- err
+						return
 					}
 				}
 			}
-			return nil
 		}()
 	}
 
