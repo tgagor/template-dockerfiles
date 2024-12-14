@@ -72,6 +72,9 @@ jobs:
         if [ "${{ matrix.os }}" == "windows" ]; then
           OUTPUT_NAME+=".exe"
         fi
+        if [ "${{ matrix.os }}" == "darwin" ]; then
+          OUTPUT_NAME=td-macos-${{ matrix.arch }}
+        fi
         go build \
           -ldflags="-X main.Version=${VERSION}" \
           -o bin/$OUTPUT_NAME \
@@ -107,7 +110,7 @@ jobs:
             binary: td-linux-amd64
 
           - os: macos-latest
-            binary: td-darwin-amd64
+            binary: td-macos-amd64
 
           - os: windows-latest
             binary: td-windows-amd64.exe
