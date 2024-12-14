@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"text/template"
@@ -239,11 +240,20 @@ func templateFile(templateFile string, destinationFile string, args map[string]i
 	return nil
 }
 
+func sanitizeForFileName(input string) string {
+	// Replace any character that is not a letter, number, or safe symbol (-, _) with an underscore
+	reg := regexp.MustCompile(`[^a-zA-Z0-9-_]+`)
+	return reg.ReplaceAllString(input, "_")
+}
+
 func getCombinationString(configSet map[string]interface{}) string {
 	var parts []string
 	for k, v := range configSet {
 		if !ignoredKey(k) {
-			parts = append(parts, fmt.Sprintf("%s-%s", k, v))
+			// Apply sanitization to both key and value
+			safeKey := sanitizeForFileName(k)
+			safeValue := sanitizeForFileName(fmt.Sprintf("%v", v))
+			parts = append(parts, fmt.Sprintf("%s-%s", safeKey, safeValue))
 		}
 	}
 	sort.Strings(parts)
