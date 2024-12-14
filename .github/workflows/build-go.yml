@@ -81,6 +81,8 @@ jobs:
 
     - name: Run UPX
       uses: crazy-max/ghaction-upx@v3
+      # macos is not supported
+      if: ${{ matrix.os != 'darwin' }}
       with:
         version: latest
         files: |
