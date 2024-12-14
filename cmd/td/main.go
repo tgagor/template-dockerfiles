@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
-	"os"
 	"path/filepath"
 	"runtime"
 
@@ -12,6 +11,7 @@ import (
 
 	"td/pkg/config"
 	"td/pkg/parser"
+	"td/pkg/util"
 )
 
 var Version string // Will be set dynamically at build time.
@@ -67,8 +67,7 @@ When 'docker build' is just not enough. :-)`,
 		// Run templating and image building
 		workdir := filepath.Dir(flags.BuildFile)
 		if err := parser.Run(workdir, cfg, flags); err != nil {
-			slog.Error("Error during parsing", "error", err)
-			os.Exit(1)
+			util.FailOnError(err, "Error during parsing")
 		}
 	},
 }
@@ -91,8 +90,7 @@ func init() {
 
 func main() {
 	if err := cmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		util.FailOnError(err)
 	}
 }
 
@@ -106,31 +104,3 @@ func initLogger(verbose bool) {
 		slog.SetLogLoggerLevel(slog.LevelInfo)
 	}
 }
-
-// func main() {
-//     // Initialize flags
-//     args := flags.Parse()
-
-// 	fmt.Println(args)
-// 	if Version == "" {
-//         Version = "development" // Fallback if not set during build
-//     }
-//     fmt.Println("Version:", Version)
-
-//     // // Configure logger
-//     // log := logger.New(args.Verbose)
-
-//     // // Parse configuration file
-//     // cfg, err := config.Load(args.ConfigFile)
-//     // if err != nil {
-//     //     log.Fatal("Error loading config:", err)
-//     // }
-
-//     // // Run templating and image building
-//     // if err := parser.Run(cfg, log); err != nil {
-//     //     log.Fatal("Error during parsing:", err)
-//     // }
-
-//     // // Execute tasks in parallel
-//     // runner.ExecuteTasks(cfg, log)
-// }

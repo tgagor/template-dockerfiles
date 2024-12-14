@@ -19,8 +19,10 @@ import (
 	"td/pkg/cmd"
 	"td/pkg/config"
 	"td/pkg/runner"
-	// "td/pkg/util"
+	"td/pkg/util"
 )
+
+// TODO: add multi-arch building support
 
 // TODO: I should split this method to smaller chunks
 func Run(workdir string, cfg *config.Config, flag config.Flags) error {
@@ -32,10 +34,6 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			slog.Debug("Excluded config sets", "excludes", img.Excludes)
 		}
 
-		interfaceVariables := convertToInterfaceMap(img.Variables)
-		combinations := getCombinations(interfaceVariables)
-
-		// var labels []string
 		var tempFiles []string
 
 		buildTasks := runner.New().Threads(flag.Threads).DryRun(flag.DryRun)
@@ -43,6 +41,8 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 		taggingTasks := runner.New().DryRun(flag.DryRun)
 		pushTasks := runner.New().Threads(flag.Threads).DryRun(flag.DryRun)
 		cleanupTasks := runner.New().Threads(flag.Threads).DryRun(flag.DryRun)
+
+		combinations := getCombinations(convertToInterfaceMap(img.Variables))
 		for _, configSet := range combinations {
 			// FIXME: This way of setting variables might collide with overrides
 			// 		  set in "variables" section, I need to change order here.
@@ -66,42 +66,21 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			}
 
 			// Collect all required data
-			tags, err := templateTags(img.Tags, configSet)
-			if err != nil {
-				return err
-			}
-			if len(tags) > 0 {
-				slog.Info("Generating tags:")
-				for _, t := range tags {
-					slog.Info("  ", "tag", t)
-				}
-			} else {
-				slog.Error("No 'tags' defined for", "image", name)
-				slog.Error("Building without 'tags', would just overwrite images in place, which is pointless. Add 'tags' block to continue.")
-				os.Exit(1)
-			}
+			tags := collectTags(img, configSet, name)
 
-			labels, err := templateLabels(configSet["labels"].(map[string]string), configSet)
-			if err != nil {
-				return err
-			}
-			if len(labels) > 0 {
-				slog.Info("Generating labels:")
-				for l, v := range labels {
-					slog.Info("  ", l, v)
-				}
-			}
+			// Collect labels, starting with global labels, then oci, then per image
+			labels := getOCILabels(configSet)
+			maps.Copy(labels, collectLabels(configSet))
 
 			dockerfile := getDockerfilePath(dockerfileTemplate, name, configSet)
 			slog.Debug("Generating temporary Dockerfile: " + dockerfile)
 			tempFiles = append(tempFiles, dockerfile)
-			slog.Debug("Tempfiles", "files", tempFiles)
+
 			// name required to avoid collisions between images
 			currentImage := name + "-" + getCombinationString(configSet)
 			if !flag.DryRun {
-				if err := templateFile(dockerfileTemplate, dockerfile, configSet); err != nil {
-					return err
-				}
+				err := templateFile(dockerfileTemplate, dockerfile, configSet)
+				util.FailOnError(err)
 			}
 
 			// collect building image commands
@@ -109,7 +88,6 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 				Arg("build").
 				Arg("-f", dockerfile).
 				Arg("-t", currentImage).
-				Arg(labelsToArgs(getOCILabels(configSet))...).
 				Arg(labelsToArgs(labels)...).
 				Arg(filepath.Dir(dockerfileTemplate)).
 				SetVerbose(flag.Verbose)
@@ -128,7 +106,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 					Arg("push").
 					Arg(imageName(cfg.Registry, cfg.Prefix, t))
 				if !flag.Verbose { // TODO: check it
-					pusher.Arg("--quiet")
+					pusher = pusher.Arg("--quiet")
 				}
 				pushTasks = pushTasks.AddTask(pusher)
 			}
@@ -150,6 +128,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 		}
 
 		// Cleanup temporary files
+		slog.Debug("Removing temporary", "files", tempFiles)
 		for _, file := range tempFiles {
 			if !flag.DryRun {
 				defer removeFile(file)
@@ -160,6 +139,34 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 	}
 	return nil
+}
+
+func collectLabels(configSet map[string]interface{}) map[string]string {
+	labels, err := templateLabels(configSet["labels"].(map[string]string), configSet)
+	util.FailOnError(err)
+	if len(labels) > 0 {
+		slog.Info("Generating labels:")
+		for l, v := range labels {
+			slog.Info("  ", l, v)
+		}
+	}
+	return labels
+}
+
+func collectTags(img config.ImageConfig, configSet map[string]interface{}, name string) []string {
+	tags, err := templateTags(img.Tags, configSet)
+	util.FailOnError(err)
+	if len(tags) > 0 {
+		slog.Info("Generating tags:")
+		for _, t := range tags {
+			slog.Info("  ", "tag", t)
+		}
+	} else {
+		slog.Error("No 'tags' defined for", "image", name)
+		slog.Error("Building without 'tags', would just overwrite images in place, which is pointless. Add 'tags' block to continue.")
+		os.Exit(1)
+	}
+	return tags
 }
 
 // getCombinations generates all combinations of variables
