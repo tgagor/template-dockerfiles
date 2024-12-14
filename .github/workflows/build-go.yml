@@ -79,6 +79,14 @@ jobs:
 
         echo "binary=${OUTPUT_NAME}" >> "$GITHUB_OUTPUT"
 
+    - name: Run UPX
+      uses: crazy-max/ghaction-upx@v3
+      with:
+        version: latest
+        files: |
+          ./bin/*
+        args: -fq
+
     - uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.build.outputs.binary }}
