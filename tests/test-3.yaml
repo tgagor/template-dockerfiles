@@ -1,0 +1,10 @@
+---
+images:
+  test-case-3:
+    dockerfile: Dockerfile.tpl
+    variables:
+      alpine:
+        - "3.18"
+        - "3.19"
+        - "3.20"
+    # no tags, so would produce rabbish then should fail

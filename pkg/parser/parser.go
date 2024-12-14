@@ -54,7 +54,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			configSet["labels"] = make(map[string]string)
 			maps.Copy(configSet["labels"].(map[string]string), cfg.GlobalLabels)
 			maps.Copy(configSet["labels"].(map[string]string), img.Labels)
-			slog.Info("Building", "image", name, "config set", configSet)
+			slog.Info("Building", "image", name)
 			// if(flag.Verbose) {
 			// 	fmt.Println("config set" + util.PrettyPrintMap(configSet))
 			// }
@@ -69,13 +69,27 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			if err != nil {
 				return err
 			}
-			slog.Info("Generated", "tags", tags)
+			if len(tags) > 0 {
+				slog.Info("Generating tags")
+				for _, t := range tags {
+					slog.Info("  ", "tag", t)
+				}
+			} else {
+				slog.Error("No 'tags' defined for", "image", name)
+				slog.Error("Building without 'tags', would just overwrite images in place, which is pointless. Add 'tags' block to continue.")
+				os.Exit(1)
+			}
 
 			labels, err := templateLabels(configSet["labels"].(map[string]string), configSet)
 			if err != nil {
 				return err
 			}
-			slog.Info("Generated", "labels", labels)
+			if len(labels) > 0 {
+				slog.Info("Generating labels")
+				for l, v := range labels {
+					slog.Info("  ", l, v)
+				}
+			}
 
 			dockerfile := getDockerfilePath(dockerfileTemplate, name, configSet)
 			slog.Debug("Generating temporary Dockerfile: " + dockerfile)
