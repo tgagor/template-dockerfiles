@@ -68,8 +68,10 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			slog.Debug("Tempfiles", "files", tempFiles)
 			// name required to avoid collisions between images
 			currentImage := name + "-" + getCombinationString(configSet)
-			if err := templateFile(dockerfileTemplate, dockerfile, configSet); err != nil {
-				return err
+			if !flag.DryRun {
+				if err := templateFile(dockerfileTemplate, dockerfile, configSet); err != nil {
+					return err
+				}
 			}
 
 			// collect building image commands
@@ -119,7 +121,9 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 		// Cleanup temporary files
 		for _, file := range tempFiles {
-			defer removeFile(file)
+			if !flag.DryRun {
+				defer removeFile(file)
+			}
 		}
 
 		fmt.Println("")
