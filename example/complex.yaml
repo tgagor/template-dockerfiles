@@ -3,6 +3,20 @@ registry: repo.local
 prefix: alpine
 maintainer: Tomasz Gągor <tomasz@gagor.pl>
 
+labels:
+  org.opencontainers.image.vendor: My Corp
+  # https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/
+  org.opencontainers.image.licenses: GPL-2.0-only
+  org.opencontainers.image.url: https://my.url
+  org.opencontainers.image.documentation: https://my.url/docs
+  org.opencontainers.image.title: My Corp's Docker base images
+  org.opencontainers.image.description: |
+    This is a longer description of what this image is capable of.
+
+    Let try templates here.
+    Image test-case-2d on Alpine Linux {{ .alpine }}
+  org.opencontainers.image.test-case-2.name: alpine:{{ .alpine }}
+
 images:
   base:
     dockerfile: base/Dockerfile.tpl
@@ -11,7 +25,7 @@ images:
         - "3.18"
         - "3.19"
         - "3.20"
-    labels:
+    tags:
       - base:{{ .tag }}-alpine{{ .alpine }}
       - base:alpine{{ .alpine }}
       - base:{{ .tag }}-alpine{{ .alpine | splitList "." | first }}
@@ -38,7 +52,7 @@ images:
         java: 23
       - alpine: "3.20"
         java: 11
-    labels:
+    tags:
       - jdk:{{ .tag }}-{{ .java }}-alpine{{ .alpine }}
       - jdk:{{ .java }}-alpine{{ .alpine }}
       - jdk:{{ .java }}-alpine{{ .alpine | splitList "." | first }}
@@ -62,7 +76,7 @@ images:
     excludes:
       - alpine: "3.20"
         java: 11
-    labels:
+    tags:
       - jre:{{ .tag }}-{{ .java }}-alpine{{ .alpine }}
       - jre:{{ .java }}-alpine{{ .alpine }}
       - jre:{{ .java }}-alpine{{ .alpine | splitList "." | first }}

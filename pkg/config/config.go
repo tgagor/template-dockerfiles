@@ -1,36 +1,41 @@
 package config
 
 import (
+	"log/slog"
 	"os"
 
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	Registry   string                 `yaml:"registry"`
-	Prefix     string                 `yaml:"prefix"`
-	Maintainer string                 `yaml:"maintainer"`
-	Images     map[string]ImageConfig `yaml:"images"`
+	Registry     string                 `yaml:"registry"`
+	Prefix       string                 `yaml:"prefix"`
+	Maintainer   string                 `yaml:"maintainer"`
+	GlobalLabels map[string]string      `yaml:"labels"`
+	Images       map[string]ImageConfig `yaml:"images"`
 }
 
 type ImageConfig struct {
 	Dockerfile string              `yaml:"dockerfile"`
 	Variables  map[string][]string `yaml:"variables"`
 	Excludes   []map[string]string `yaml:"excludes"`
-	Labels     []string            `yaml:"labels"`
+	Tags       []string            `yaml:"tags"`
+	Labels     map[string]string   `yaml:"labels"`
 }
 
-func Load(filename string) (*Config, error) {
+func Load(filename string) *Config {
 	file, err := os.Open(filename)
 	if err != nil {
-		return nil, err
+		slog.Error("Error loading config", "error", err)
+		panic("Opening " + filename + " failed!")
 	}
 	defer file.Close()
 
 	var cfg Config
 	decoder := yaml.NewDecoder(file)
 	if err := decoder.Decode(&cfg); err != nil {
-		return nil, err
+		slog.Error("Error loading config", "error", err)
+		panic("Decoding YAML " + filename + " failed! Check syntax and try again.")
 	}
-	return &cfg, nil
+	return &cfg
 }

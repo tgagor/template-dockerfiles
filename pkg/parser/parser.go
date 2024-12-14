@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log/slog"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
@@ -18,6 +19,7 @@ import (
 	"td/pkg/cmd"
 	"td/pkg/config"
 	"td/pkg/runner"
+	// "td/pkg/util"
 )
 
 func Run(workdir string, cfg *config.Config, flag config.Flags) error {
@@ -37,7 +39,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 		buildTasks := runner.New().Threads(flag.Threads).DryRun(flag.DryRun)
 		// labelling have to happen in order, so no parallelism
-		labelingTasks := runner.New().DryRun(flag.DryRun)
+		taggingTasks := runner.New().DryRun(flag.DryRun)
 		pushTasks := runner.New().Threads(flag.Threads).DryRun(flag.DryRun)
 		cleanupTasks := runner.New().Threads(flag.Threads).DryRun(flag.DryRun)
 		for _, configSet := range combinations {
@@ -49,7 +51,13 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			configSet["registry"] = cfg.Registry
 			configSet["prefix"] = cfg.Prefix
 			configSet["maintainer"] = cfg.Maintainer
+			configSet["labels"] = make(map[string]string)
+			maps.Copy(configSet["labels"].(map[string]string), cfg.GlobalLabels)
+			maps.Copy(configSet["labels"].(map[string]string), img.Labels)
 			slog.Info("Building", "image", name, "config set", configSet)
+			// if(flag.Verbose) {
+			// 	fmt.Println("config set" + util.PrettyPrintMap(configSet))
+			// }
 
 			if isExcluded(configSet, img.Excludes) {
 				slog.Debug("Skipping excluded", "config set", configSet, "excludes", img.Excludes)
@@ -57,13 +65,19 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			}
 
 			// Collect all required data
-			labels, err := templateLabels(img.Labels, configSet)
+			tags, err := templateTags(img.Tags, configSet)
 			if err != nil {
 				return err
 			}
-			slog.Debug("Generated labels: " + strings.Join(labels, ", "))
+			slog.Info("Generated", "tags", tags)
 
-			dockerfile := getDockerfilePath(dockerfileTemplate, configSet)
+			labels, err := templateLabels(configSet["labels"].(map[string]string), configSet)
+			if err != nil {
+				return err
+			}
+			slog.Info("Generated", "labels", labels)
+
+			dockerfile := getDockerfilePath(dockerfileTemplate, name, configSet)
 			slog.Debug("Generating temporary Dockerfile: " + dockerfile)
 			tempFiles = append(tempFiles, dockerfile)
 			slog.Debug("Tempfiles", "files", tempFiles)
@@ -80,24 +94,24 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 				Arg("build").
 				Arg("-f", dockerfile).
 				Arg("-t", currentImage).
-				Arg(getOCILabels(configSet)...).
-				// TODO: Add open container labels automatically
+				Arg(labelsToArgs(getOCILabels(configSet))...).
+				Arg(labelsToArgs(labels)...).
 				Arg(filepath.Dir(dockerfileTemplate)).
 				SetVerbose(flag.Verbose)
 			buildTasks = buildTasks.AddTask(builder)
 
-			// collect labelling commands to keep order
-			for _, l := range labels {
-				labeler := cmd.New("docker").
+			// collect tagging commands to keep order
+			for _, t := range tags {
+				tagger := cmd.New("docker").
 					Arg("tag").
 					Arg(currentImage).
-					Arg(imageName(cfg.Registry, cfg.Prefix, l)).
+					Arg(imageName(cfg.Registry, cfg.Prefix, t)).
 					SetVerbose(flag.Verbose)
-				labelingTasks = labelingTasks.AddTask(labeler)
+				taggingTasks = taggingTasks.AddTask(tagger)
 
 				pusher := cmd.New("docker").
 					Arg("push").
-					Arg(imageName(cfg.Registry, cfg.Prefix, l))
+					Arg(imageName(cfg.Registry, cfg.Prefix, t))
 				if !flag.Verbose { // TODO: check it
 					pusher.Arg("--quiet")
 				}
@@ -113,7 +127,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 		}
 
 		buildTasks.RunParallel()
-		labelingTasks.Run()
+		taggingTasks.Run()
 		cleanupTasks.RunParallel()
 		if flag.Push {
 			slog.Info("Pushing images...")
@@ -189,15 +203,33 @@ func convertToInterfaceMap(input map[string][]string) map[string][]interface{} {
 	return output
 }
 
-func templateLabels(labelTemplates []string, configSet map[string]interface{}) ([]string, error) {
-	var labels []string
+func templateTags(tagTemplates []string, configSet map[string]interface{}) ([]string, error) {
+	var tags []string
 
-	for _, label := range labelTemplates {
+	for _, label := range tagTemplates {
 		templated, err := templateString(label, configSet)
 		if err != nil {
 			return nil, err
 		}
-		labels = append(labels, templated)
+		tags = append(tags, templated)
+	}
+
+	return tags, nil
+}
+
+func templateLabels(labelTemplates map[string]string, configSet map[string]interface{}) (map[string]string, error) {
+	labels := map[string]string{}
+
+	for label, value := range labelTemplates {
+		templatedLabel, err := templateString(label, configSet)
+		if err != nil {
+			return nil, err
+		}
+		templatedValue, err := templateString(value, configSet)
+		if err != nil {
+			return nil, err
+		}
+		labels[templatedLabel] = templatedValue
 	}
 
 	return labels, nil
@@ -242,7 +274,7 @@ func templateFile(templateFile string, destinationFile string, args map[string]i
 
 func sanitizeForFileName(input string) string {
 	// Replace any character that is not a letter, number, or safe symbol (-, _) with an underscore
-	reg := regexp.MustCompile(`[^a-zA-Z0-9-_]+`)
+	reg := regexp.MustCompile(`[^a-zA-Z0-9-_\.]+`)
 	return reg.ReplaceAllString(input, "_")
 }
 
@@ -260,10 +292,10 @@ func getCombinationString(configSet map[string]interface{}) string {
 	return strings.Join(parts, "-")
 }
 
-func getDockerfilePath(dockerFileTemplate string, configSet map[string]interface{}) string {
+func getDockerfilePath(dockerFileTemplate string, image string, configSet map[string]interface{}) string {
 	dirname := filepath.Dir(dockerFileTemplate)
-	filename := getCombinationString(configSet) + ".Dockerfile"
-	return filepath.Join(dirname, filename)
+	filename := image + "-" + getCombinationString(configSet) + ".Dockerfile"
+	return filepath.Join(dirname, sanitizeForFileName(filename))
 }
 
 func imageName(registry string, prefix string, name string) string {
@@ -276,7 +308,8 @@ func ignoredKey(key string) bool {
 		"registry",
 		"prefix",
 		"maintainer",
-		"tag":
+		"tag",
+		"labels":
 		return true
 	}
 	return false

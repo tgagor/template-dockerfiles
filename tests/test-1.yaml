@@ -1,0 +1,21 @@
+---
+# no maintainer, registry or prefix
+# just to ensure it would work correctly without them
+
+images:
+  test-case-1:
+    dockerfile: Dockerfile.tpl
+    variables:
+      alpine:
+        - "3.18"
+        - "3.19"
+        - "3.20"
+      multiword:
+        # dirty string as variable
+        - kuku ruku
+    tags:
+      - test-case-1:{{ .tag }}-alpine{{ .alpine }}
+      # check sprig functions
+      - test-case-1:alpine{{ .alpine | splitList "." | first }}
+      # tag as latest
+      - test-case-1

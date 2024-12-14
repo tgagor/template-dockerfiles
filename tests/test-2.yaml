@@ -1,0 +1,47 @@
+---
+maintainer: Tomasz Gągor <tomasz@gagor.pl>
+registry: repo.local
+
+# let it be empty, for fun
+prefix:
+
+# global labels, that would be added to all images by default
+labels:
+  org.opencontainers.image.vendor: Test Corp
+  # https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/
+  org.opencontainers.image.licenses: GPL-2.0-only
+  org.opencontainers.image.description: |
+    Default description with arguments defined later:
+    Image test-case-2 on Alpine Linux {{ .alpine }}
+
+images:
+  test-case-2:
+    dockerfile: Dockerfile.tpl
+    variables:
+      alpine:
+        - "3.18"
+        - "3.19"
+        - "3.20"
+    tags:
+      - test-case-2:{{ .tag }}-alpine{{ .alpine }}
+      # check sprig functions
+      - test-case-2:alpine{{ .alpine | splitList "." | first }}
+    # per image labels
+    labels:
+      org.opencontainers.image.url: https://my.url
+      org.opencontainers.image.documentation: https://my.url/docs
+      org.opencontainers.image.title: Our test-case-2 image
+      org.opencontainers.image.description: |
+        This is a longer description of what this image is capable of.
+
+        Let try templates here.
+        Image test-case-2d on Alpine Linux {{ .alpine }}
+      org.opencontainers.image.test-case-2.name: alpine:{{ .alpine }}
+
+  test-case-2b: # no labels, so should be templated with the default one
+    dockerfile: Dockerfile.tpl
+    variables:
+      alpine:
+        - "3.20"
+    tags:
+      - test-case-2b

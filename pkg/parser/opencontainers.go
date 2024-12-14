@@ -8,37 +8,50 @@ import (
 	git "github.com/go-git/go-git/v5"
 )
 
-func getOCILabels(cfg map[string]interface{}) []string {
-	labels := []string{}
+// Follow:
+// https://github.com/opencontainers/image-spec/blob/main/annotations.md
+func getOCILabels(cfg map[string]interface{}) map[string]string {
+	labels := map[string]string{}
 
 	if cfg["maintainer"] != "" {
-		labels = append(labels, "--label", fmt.Sprintf("maintainer=%s", cfg["maintainer"]))
+		labels["maintainer"] = cfg["maintainer"].(string)
+		labels["org.opencontainers.image.authors"] = cfg["maintainer"].(string)
 	}
 
 	if cfg["tag"] != "" {
-		labels = append(labels, "--label", fmt.Sprintf("org.opencontainers.image.version=%s", cfg["tag"]))
+		labels["org.opencontainers.image.version"] = cfg["tag"].(string)
 	}
 
 	timestamp := time.Now().Format(time.RFC3339)
-	labels = append(labels, "--label", fmt.Sprintf("org.opencontainers.image.created=%s", timestamp))
+	labels["org.opencontainers.image.created"] = string(timestamp)
 
 	originUrl, hexsha, branch, err := readGitRepo(".")
 	if err != nil {
 		slog.Warn("Not being able to read git repo metadata, or not a git repo. Skipping.", "error", err)
 	} else {
 		if originUrl != "" {
-			labels = append(labels, "--label", fmt.Sprintf("org.opencontainers.image.source=%s", originUrl))
+			labels["org.opencontainers.image.source"] = originUrl
 		}
 		if hexsha != "" {
-			labels = append(labels, "--label", fmt.Sprintf("org.opencontainers.image.revision=%s", hexsha))
+			labels["org.opencontainers.image.revision"] = hexsha
 		}
 		if branch != "" {
-			labels = append(labels, "--label", fmt.Sprintf("org.opencontainers.image.branch=%s", branch))
+			labels["org.opencontainers.image.branch"] = branch
 		}
 	}
 
 	slog.Debug("Adding OCI", "labels", labels)
 	return labels
+}
+
+func labelsToArgs(labels map[string]string) []string {
+	args := []string{}
+
+	for k, v := range labels {
+		args = append(args, "--label", fmt.Sprintf("%s=%s", k, v))
+	}
+
+	return args
 }
 
 func readGitRepo(path string) (originURL string, commitHex string, branchName string, err error) {
