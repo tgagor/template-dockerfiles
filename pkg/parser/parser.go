@@ -77,7 +77,8 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 				Arg("build").
 				Arg("-f", dockerfile).
 				Arg("-t", currentImage).
-				// TODO: Add opencontainer labels automatically
+				Arg(getOCILabels(configSet)...).
+				// TODO: Add open container labels automatically
 				Arg(filepath.Dir(dockerfileTemplate)).
 				SetVerbose(flag.Verbose)
 			buildTasks = buildTasks.AddTask(builder)
@@ -94,13 +95,13 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 				pusher := cmd.New("docker").
 					Arg("push").
 					Arg(imageName(cfg.Registry, cfg.Prefix, l))
-					if !flag.Verbose {
-						pusher.Arg("--quiet")
-					}
+				if !flag.Verbose { // TODO: check it
+					pusher.Arg("--quiet")
+				}
 				pushTasks = pushTasks.AddTask(pusher)
 			}
 
-			// remove teporary labels
+			// remove temporary labels
 			dropTempLabel := cmd.New("docker").
 				Arg("image", "rm", "-f").
 				Arg(currentImage).
@@ -112,8 +113,8 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 		labelingTasks.Run()
 		cleanupTasks.RunParallel()
 		if flag.Push {
-			slog.Info("Pushing images")
-			pushTasks.Run()
+			slog.Info("Pushing images...")
+			pushTasks.RunParallel()
 		}
 
 		// Cleanup temporary files
@@ -209,7 +210,7 @@ func templateString(pattern string, args map[string]interface{}) (string, error)
 
 func templateFile(templateFile string, destinationFile string, args map[string]interface{}) error {
 	t := template.Must(
-		template.New(path.Base(templateFile)).Funcs(sprig.TxtFuncMap()).ParseFiles(templateFile),
+		template.New(filepath.Base(templateFile)).Funcs(sprig.TxtFuncMap()).ParseFiles(templateFile),
 	)
 
 	f, err := os.Create(destinationFile)
@@ -252,7 +253,7 @@ func getDockerfilePath(dockerFileTemplate string, configSet map[string]interface
 }
 
 func imageName(registry string, prefix string, name string) string {
-	return filepath.Join(registry, prefix, name)
+	return path.Join(registry, prefix, name)
 }
 
 func ignoredKey(key string) bool {
