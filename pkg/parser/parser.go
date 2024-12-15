@@ -122,15 +122,14 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			cleanupTasks = cleanupTasks.AddTask(dropTempLabel)
 		}
 
-		err := buildTasks.RunParallel()
+		err := buildTasks.Run()
 		util.FailOnError(err)
 		err = taggingTasks.Run()
 		util.FailOnError(err)
-		err = cleanupTasks.RunParallel()
+		err = cleanupTasks.Run()
 		util.FailOnError(err)
 		if flag.Push {
-			slog.Info("Pushing images...")
-			err := pushTasks.RunParallel()
+			err := pushTasks.Run()
 			util.FailOnError(err)
 		}
 
