@@ -193,8 +193,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -x
-          assets=()
           for asset in bin/*; do
-            assets+=("-a" "$asset")
+            gh release upload "${{ steps.tag_version.outputs.new_tag }}" "$asset"
           done
-          hub release edit "${assets[@]}" -m "" "${{ steps.tag_version.outputs.new_tag }}"
