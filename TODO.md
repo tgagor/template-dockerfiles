@@ -92,3 +92,4 @@ Ideas and wishlist
       TARGETARCH - Architecture from --platform, e.g. arm64
       TARGETVARIANT
       ```
+    - proper verification for allowed values have to be added
