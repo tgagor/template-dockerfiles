@@ -170,45 +170,30 @@ jobs:
           cd bin
           sha512sum td-* > sha512sums.txt
 
-      # - name: Update README
-      #   if: ${{ !contains(github.event.commits[0].message, 'auto-update README') }}
-      #   run: |
-      #     cp dist/tpl-linux-amd64 /usr/local/bin/tpl
-      #     chmod +x /usr/local/bin/tpl
+      - name: Bump version and push tag
+        if: github.ref == 'refs/heads/main'
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      #     export TPL_VERSION=${TPL_VERSION}
+      - name: Create normal GitHub release
+        if: github.ref == 'refs/heads/main' && github.event_name != 'schedule'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.tag_version.outputs.new_tag }}
+          release_name: Release ${{ steps.tag_version.outputs.new_tag }}
+          body: ${{ steps.tag_version.outputs.changelog }}
 
-      #     tpl -t README.md.tpl | tee README.md
-
-      #     git branch
-
-      #     if [[ "$(git status --porcelain)" != "" ]]; then
-      #       git config user.name "GitHub Action"
-      #       git config user.email "action@github.com"
-      #       git add .
-      #       git commit -m "docs(readme): auto-update README"
-      #       git push origin HEAD:master
-      #     fi
-
-      # - name: Create Release
-      #   id: create_release
-      #   uses: actions/create-release@latest
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     tag_name: ${{ github.ref }}
-      #     release_name: ${{ github.ref }}
-      #     body: ${{ steps.changelog.outputs.changelog }}
-      #     draft: false
-      #     prerelease: false
-
-      # - name: Upload multiple assets
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   run: |
-      #     set -x
-      #     assets=()
-      #     for asset in bin/*; do
-      #       assets+=("-a" "$asset")
-      #     done
-      #     hub release edit "${assets[@]}" -m "" "${GITHUB_REF##*/}"
+      - name: Upload multiple assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -x
+          assets=()
+          for asset in bin/*; do
+            assets+=("-a" "$asset")
+          done
+          hub release edit "${assets[@]}" -m "" "${{ steps.tag_version.outputs.new_tag }}"
