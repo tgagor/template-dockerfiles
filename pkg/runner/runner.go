@@ -49,20 +49,20 @@ func (r Runner) Threads(threads int) Runner {
 	return r
 }
 
-func (r Runner) Run() error {
-	for _, c := range r.tasks {
-		if r.dryRun {
-			slog.Debug("DRY-RUN: Run", "cmd", c.String())
-		} else {
-			if err := c.Run(); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
+// func (r Runner) Run() error {
+// 	for _, c := range r.tasks {
+// 		if r.dryRun {
+// 			slog.Debug("DRY-RUN: Run", "cmd", c.String())
+// 		} else {
+// 			if err := c.Run(); err != nil {
+// 				return err
+// 			}
+// 		}
+// 	}
+// 	return nil
+// }
 
-func (r Runner) RunParallel() error {
+func (r Runner) Run() error {
 	// Workers get tasks from this channel
 	tasks := make(chan cmd.Cmd)
 
