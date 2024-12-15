@@ -1,4 +1,4 @@
-module td
+module github.com/tgagor/template-dockerfiles
 
 go 1.22.2
 

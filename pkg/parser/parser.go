@@ -16,10 +16,10 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 
-	"td/pkg/cmd"
-	"td/pkg/config"
-	"td/pkg/runner"
-	"td/pkg/util"
+	"github.com/tgagor/template-dockerfiles/pkg/cmd"
+	"github.com/tgagor/template-dockerfiles/pkg/config"
+	"github.com/tgagor/template-dockerfiles/pkg/runner"
+	"github.com/tgagor/template-dockerfiles/pkg/util"
 )
 
 // TODO: add multi-arch building support

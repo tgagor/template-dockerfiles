@@ -3,7 +3,8 @@ package runner
 import (
 	"log/slog"
 	"sync"
-	"td/pkg/cmd"
+
+	"github.com/tgagor/template-dockerfiles/pkg/cmd"
 )
 
 type Runner struct {

@@ -9,9 +9,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"td/pkg/config"
-	"td/pkg/parser"
-	"td/pkg/util"
+	"github.com/tgagor/template-dockerfiles/pkg/config"
+	"github.com/tgagor/template-dockerfiles/pkg/parser"
+	"github.com/tgagor/template-dockerfiles/pkg/util"
 )
 
 var Version string // Will be set dynamically at build time.
