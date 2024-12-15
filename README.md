@@ -1,11 +1,11 @@
 Template-Dockerfiles
 ====================
 
-[![build](https://github.com/tgagor/template-dockerfiles/actions/workflows/python-build-and-test.yml/badge.svg?branch=main)](https://github.com/tgagor/template-dockerfiles/actions/workflows/python-build-and-test.yml)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/tgagor/template-dockerfiles/build-go.yml)
 ![GitHub](https://img.shields.io/github/license/tgagor/template-dockerfiles)
 ![GitHub Release Date](https://img.shields.io/github/release-date/tgagor/template-dockerfiles)
 
-A versatile Docker image builder that uses Jinja2 templates to dynamically generate Dockerfiles, validate configurations, and build container images efficiently. The app supports parameterized builds, parallel execution, and customization for streamlined container development.
+A versatile Docker image builder that uses [Go Templates](https://pkg.go.dev/text/template) extended with [Sprig functions](http://masterminds.github.io/sprig/lists.html) to dynamically generate Dockerfiles, validate configurations, and build container images efficiently. The app supports parameterized builds, parallel execution, and customization for streamlined container development.
 
 
 ## **Parameters**
@@ -59,6 +59,21 @@ This file format defines the configuration for dynamically generating Docker ima
   maintainer: Name <email@domain>
   ```
 
+### **`labels`** (Optional)
+- **Description**: Global labels that would be added to each image automatically.
+- **Type**: Dictionary of strings
+- **Example**:
+  ```yaml
+  labels:
+    - org.opencontainers.image.licenses: License(s) under which contained software is distributed as an [SPDX License Expression](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/).
+    - org.opencontainers.image.title: Human-readable title of the image (string).
+    - org.opencontainers.image.description: |
+     Human-readable description of the software packaged in the image.
+     (multiline string).
+  ```
+- **Notes**:
+  - I recommend to follow [OCI Label Schema](https://github.com/opencontainers/image-spec/blob/main/annotations.md), app will add some of them automatically.
+  - Even those labels can be templated, but as they're global, you should only use variables available in all images. Otherwise they might be evaluated to: `<no value>`, unless you filter those out with additional conditions.
 
 ## **Images Section**
 
@@ -69,11 +84,11 @@ Defines the Docker images to build. Each image has specific attributes such as i
 Each image is identified by a key (e.g., `base`, `jdk`, `jre`) and contains the following attributes:
 
 ### **`dockerfile`** (Required)
-- **Description**: The path to the Dockerfile template used to build the image. [Jinja2 format](https://jinja.palletsprojects.com/en/stable/templates/) templates are supported.
+- **Description**: The path to the Dockerfile template used to build the image. [Go Templates](https://pkg.go.dev/text/template) extended with [Sprig functions](http://masterminds.github.io/sprig/lists.html) are supported.
 - **Type**: String
 - **Example**:
   ```yaml
-  dockerfile: base/Dockerfile.jinja2
+  dockerfile: base/Dockerfile.tpl
   ```
 
 ### **`variables`** (Optional)
@@ -88,23 +103,37 @@ Each image is identified by a key (e.g., `base`, `jdk`, `jre`) and contains the 
   ```
 
 - **Notes**:
-  - Builder generates a Cartesian product of all vaiables (all combinations).
-  - The variables can have multiple values, allowing builds for different configurations.
+  - Builder generates a Cartesian product of all variables (all combinations).
+  - The variables can have multiple values, allowing builds for different configuration sets.
   - Variables are substituted into the template during build.
 
-### **`labels`** (Required)
-- **Description**: A list of labels to tag the generated Docker images.
+### **`tags`** (Required)
+- **Description**: A list of names and tags to tag the generated Docker images.
 - **Type**: List of strings
 - **Example**:
   ```yaml
   labels:
-    - base:{{ tag }}-alpine{{ alpine }}
-    - base:alpine{{ alpine }}
+    - base:{{ .tag }}-alpine{{ .alpine }}
+    - base:alpine{{ .alpine }}
   ```
 - **Notes**:
-  - Labels support Jinja2 expressions. For example, `{{ alpine.split('.')[0] }}` extracts the major version from `alpine`.
+  - Labels support [Go Templates](https://pkg.go.dev/text/template) extended with [Sprig functions](http://masterminds.github.io/sprig/lists.html). For example, `{{ .alpine | splitList "." | first }}` extracts the major version from `alpine`.
   - `tag` argument is provided by `--tag`/`-t` parameter, which reflects the image version.
 
+### **`labels`** (Optional)
+- **Description**: Per image labels, that would be added to each image.
+- **Type**: Dictionary of strings
+- **Example**:
+  ```yaml
+  labels:
+    - org.opencontainers.image.base.name: alpine:{{ .alpine }}
+    - org.opencontainers.image.description: |
+     Human-readable description of the software packaged in the image.
+     (multiline string).
+  ```
+- **Notes**:
+  - I recommend to follow [OCI Label Schema](https://github.com/opencontainers/image-spec/blob/main/annotations.md), app will add some of them automatically.
+  - Labels can be templated and they will override global labels of same name.
 
 ## **Example Configuration**
 
@@ -116,7 +145,7 @@ maintainer: Awesome Developer <awesome@mail>
 
 images:
   jdk:
-    dockerfile: jdk/Dockerfile.jinja2
+    dockerfile: jdk/Dockerfile.tpl
     variables:
       alpine:
         - "3.19"
@@ -125,35 +154,35 @@ images:
         - 11
         - 17
         - 21
-    labels:
-      - jdk:{{ tag }}-{{ java }}-alpine{{ alpine }}
-      - jdk:{{ java }}-alpine{{ alpine.split('.')[0] }}
+    tags:
+      - jdk:{{ .tag }}-{{ .java }}-alpine{{ .alpine }}
+      - jdk:{{ .java }}-alpine{{ .alpine | splitList "." | first }}
 ```
 
 Call it like:
 
 ```bash
-template-dockerfiles --config build.yaml --tag 1.2.3
+td --config build.yaml --tag v1.2.3
 ```
 
-Which will produce 2x4 -> 8 images, with 16 labels:
+Which will produce 2x3 -> 6 images, with 12 labels:
 
 ```bash
-repo.local/my-base/jdk:1.2.3-11-alpine3.19
+repo.local/my-base/jdk:v1.2.3-11-alpine3.19
 repo.local/my-base/jdk:11-alpine3
-repo.local/my-base/jdk:1.2.3-17-alpine3.19
+repo.local/my-base/jdk:v1.2.3-17-alpine3.19
 repo.local/my-base/jdk:17-alpine3
-repo.local/my-base/jdk:1.2.3-21-alpine3.19
+repo.local/my-base/jdk:v1.2.3-21-alpine3.19
 repo.local/my-base/jdk:21-alpine3
-repo.local/my-base/jdk:1.2.3-11-alpine3.20
+repo.local/my-base/jdk:v1.2.3-11-alpine3.20
 repo.local/my-base/jdk:11-alpine3
-repo.local/my-base/jdk:1.2.3-17-alpine3.20
+repo.local/my-base/jdk:v1.2.3-17-alpine3.20
 repo.local/my-base/jdk:17-alpine3
-repo.local/my-base/jdk:1.2.3-21-alpine3.20
+repo.local/my-base/jdk:v1.2.3-21-alpine3.20
 repo.local/my-base/jdk:21-alpine3
 ```
 
-Order of values under `variables` block is used to determine the order of labels creation.
+**Order of values under `variables` block is used to determine the order of labels creation.**
 
 
 ## **Validation and Recommendations**
@@ -166,6 +195,31 @@ Order of values under `variables` block is used to determine the order of labels
 2. Add meaningful labels to enhance discoverability and traceability.
 3. Keep in mind that order of variables, determine order of labeling and some labels might overwrite previously created. Use `--dry-run` mode to determine the result.
 
+### Parallelism
+1. Tool detects number of available CPU
+
 ## **Advanced Tips**
 
-1. **Dynamic Tags**: Use Jinja2 expressions like `{{ os.split('.')[0] }}` to generate tags dynamically.
+1. **Dynamic Tags**: Use [Go Templates](https://pkg.go.dev/text/template) support by [Sprig functions](http://masterminds.github.io/sprig/lists.html) to create dynamic expressions like `{{ .alpine | splitList "." | first }}` to generate tags or labels dynamically.
+
+Parameters
+----------
+
+```bash
+A CLI tool for building Docker images with configurable Dockerfile templates and multi-threaded execution.
+
+When 'docker build' is just not enough. :-)
+
+Usage:
+  td [flags]
+
+Flags:
+  -c, --config string   Path to the configuration file (required)
+  -d, --dry-run         Print actions but don't execute them
+  -h, --help            help for td
+      --parallel int    Specify the number of threads to use, defaults to number of CPUs
+  -p, --push            Push Docker images after building
+  -t, --tag string      Tag to use as the image version
+  -v, --verbose         Increase verbosity of output
+  -V, --version         Display the application version and exit
+```

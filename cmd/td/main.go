@@ -80,9 +80,9 @@ func init() {
 	cmd.PersistentFlags().StringVarP(&flags.BuildFile, "config", "c", "", "Path to the configuration file (required)")
 	// rootCmd.MarkPersistentFlagRequired("config")
 
-	cmd.Flags().BoolVar(&flags.DryRun, "dry-run", false, "Print actions but don't execute them")
-	cmd.Flags().BoolVar(&flags.Push, "push", false, "Push Docker images after building")
-	cmd.Flags().IntVarP(&flags.Threads, "parallel", "p", runtime.NumCPU(), "Specify the number of threads to use (default: number of CPUs)")
+	cmd.Flags().BoolVarP(&flags.DryRun, "dry-run", "d", false, "Print actions but don't execute them")
+	cmd.Flags().BoolVarP(&flags.Push, "push", "p", false, "Push Docker images after building")
+	cmd.Flags().IntVar(&flags.Threads, "parallel", runtime.NumCPU(), "Specify the number of threads to use, defaults to number of CPUs")
 	cmd.Flags().StringVarP(&flags.Tag, "tag", "t", "", "Tag to use as the image version")
 	cmd.Flags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Increase verbosity of output")
 	cmd.Flags().BoolVarP(&flags.PrintVersion, "version", "V", false, "Display the application version and exit")
