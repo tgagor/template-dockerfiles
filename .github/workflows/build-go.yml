@@ -14,6 +14,8 @@ name: Build & Tests
 #       - "v*"
 on:
   push:
+    paths-ignore:
+      - 'README.md'
     branches:
       - main
       - feature/*
