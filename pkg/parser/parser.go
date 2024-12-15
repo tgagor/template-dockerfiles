@@ -95,16 +95,19 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 			// collect tagging commands to keep order
 			for _, t := range tags {
+				taggedImg := imageName(cfg.Registry, cfg.Prefix, t)
 				tagger := cmd.New("docker").
 					Arg("tag").
 					Arg(currentImage).
-					Arg(imageName(cfg.Registry, cfg.Prefix, t)).
-					SetVerbose(flag.Verbose)
+					Arg(taggedImg).
+					SetVerbose(flag.Verbose).
+					PreInfo("Tagging " + taggedImg)
 				taggingTasks = taggingTasks.AddTask(tagger)
 
 				pusher := cmd.New("docker").
 					Arg("push").
-					Arg(imageName(cfg.Registry, cfg.Prefix, t))
+					Arg(taggedImg).
+					PreInfo("Pushing " + taggedImg)
 				if !flag.Verbose { // TODO: check it
 					pusher = pusher.Arg("--quiet")
 				}
