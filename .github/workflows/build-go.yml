@@ -146,6 +146,7 @@ jobs:
           .\\${{ matrix.binary }} --config tests/test-2.yaml --tag ${VERSION} --push --dry-run
 
   release:
+    permissions: write-all
     runs-on: ubuntu-latest
     needs:
       - test
