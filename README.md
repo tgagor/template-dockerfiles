@@ -8,27 +8,43 @@ Template-Dockerfiles
 A versatile Docker image builder that uses [Go Templates](https://pkg.go.dev/text/template) extended with [Sprig functions](http://masterminds.github.io/sprig/lists.html) to dynamically generate Dockerfiles, validate configurations, and build container images efficiently. The app supports parameterized builds, parallel execution, and customization for streamlined container development.
 
 
-## **Parameters**
+Parameters
+----------
 
 ```bash
-usage: template-dockerfiles [-h] -c CONFIG_FILE [--dry-run] [--push] [--parallel THREADS] [-v] [--version] -t TAG
+A CLI tool for building Docker images with configurable Dockerfile templates and multi-threaded execution.
 
-A Docker image builder that uses Jinja2 templates to dynamically generate Dockerfiles.
+When 'docker build' is just not enough. :-)
 
-options:
-  -h, --help            show this help message and exit
-  -c, --config CONFIG_FILE
-                        configuration file
-  --dry-run             print what would be done, but don't do anything
-  --push                push Docker images when successfully build
-  --parallel THREADS    specify the number of threads to use (default: number of CPUs).
-  -v, --verbose         be verbose
-  --version             show the version of the application and exit
-  -t, --tag TAG         tag that could be used as an image version
+Usage:
+  td [flags]
 
-When 'docker build' is just not enough :-)
+Flags:
+  -c, --config string   Path to the configuration file (required)
+  -d, --dry-run         Print actions but don't execute them
+  -h, --help            help for td
+      --parallel int    Specify the number of threads to use, defaults to number of CPUs
+  -p, --push            Push Docker images after building
+  -t, --tag string      Tag to use as the image version
+  -v, --verbose         Increase verbosity of output
+  -V, --version         Display the application version and exit
 ```
 
+Installation
+------------
+
+Download latest version of file:
+
+```bash
+sudo curl -sLfo /usr/local/bin/td https://github.com/tgagor/template-dockerfiles/releases/latest/download/td-linux-amd64
+sudo chmod +x /usr/local/bin/td
+```
+Alternatively, extract it to any location under `PATH`. Or download with Go Lang:
+
+```bash
+go install github.com/tgagor/template-dockerfiles/cmd/td@latest
+```
+Ensure you have `GOPATH`, in your `PATH`.
 
 ## **Configuration Format**
 
@@ -213,25 +229,3 @@ repo.local/my-base/jdk:21-alpine3
 ## **Advanced Tips**
 
 1. **Dynamic Tags**: Use [Go Templates](https://pkg.go.dev/text/template) support by [Sprig functions](http://masterminds.github.io/sprig/lists.html) to create dynamic expressions like `{{ .alpine | splitList "." | first }}` to generate tags or labels dynamically.
-
-Parameters
-----------
-
-```bash
-A CLI tool for building Docker images with configurable Dockerfile templates and multi-threaded execution.
-
-When 'docker build' is just not enough. :-)
-
-Usage:
-  td [flags]
-
-Flags:
-  -c, --config string   Path to the configuration file (required)
-  -d, --dry-run         Print actions but don't execute them
-  -h, --help            help for td
-      --parallel int    Specify the number of threads to use, defaults to number of CPUs
-  -p, --push            Push Docker images after building
-  -t, --tag string      Tag to use as the image version
-  -v, --verbose         Increase verbosity of output
-  -V, --version         Display the application version and exit
-```
