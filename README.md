@@ -137,7 +137,14 @@ Each image is identified by a key (e.g., `base`, `jdk`, `jre`) and contains the 
 
 ## **Example Configuration**
 
-### Global Settings
+### Complete Examples
+
+For complete examples of configuration check [example](./example/) directory.
+
+### Configuration File
+
+Start defining your build configuration file. It's a playbook by which your Docker image templates will be generated and build:
+
 ```yaml
 registry: repo.local
 prefix: my-base
@@ -159,7 +166,7 @@ images:
       - jdk:{{ .java }}-alpine{{ .alpine | splitList "." | first }}
 ```
 
-Call it like:
+Call build like:
 
 ```bash
 td --config build.yaml --tag v1.2.3
@@ -196,7 +203,12 @@ repo.local/my-base/jdk:21-alpine3
 3. Keep in mind that order of variables, determine order of labeling and some labels might overwrite previously created. Use `--dry-run` mode to determine the result.
 
 ### Parallelism
-1. Tool detects number of available CPU
+1. Tool detects number of available CPU and run as many jobs as possible.
+2. For debugging, it might be easier to use `--parallel 1 --verbose` to limit amount of messages produced.
+
+### Debugging
+1. Use `--verbose` flag. It will produce a lot of debug information.
+2. Use `--dry-run` flag just to see what would be produced without actually building anything.
 
 ## **Advanced Tips**
 
