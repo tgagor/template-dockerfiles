@@ -23,19 +23,19 @@ type ImageConfig struct {
 	Labels     map[string]string        `yaml:"labels"`
 }
 
-func Load(filename string) *Config {
+func Load(filename string) (*Config, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		slog.Error("Error loading config", "error", err)
-		panic("Opening " + filename + " failed!")
+		return nil, err
 	}
 	defer file.Close()
 
 	var cfg Config
 	decoder := yaml.NewDecoder(file)
 	if err := decoder.Decode(&cfg); err != nil {
-		slog.Error("Error loading config", "error", err)
-		panic("Decoding YAML " + filename + " failed! Check syntax and try again.")
+		slog.Error("Decoding YAML "+filename+" failed! Check syntax and try again", "error", err)
+		return nil, err
 	}
-	return &cfg
+	return &cfg, nil
 }

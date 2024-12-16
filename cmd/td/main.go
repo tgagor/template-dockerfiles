@@ -69,7 +69,8 @@ When 'docker build' is just not enough. :-)`,
 
 		// Parse configuration file
 		slog.Info("Loading", "config", flags.BuildFile)
-		cfg := config.Load(flags.BuildFile)
+		cfg, err := config.Load(flags.BuildFile)
+		util.FailOnError(err)
 		slog.Debug("Loaded", "config", cfg)
 
 		// Run templating and image building
