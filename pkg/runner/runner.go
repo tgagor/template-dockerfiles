@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"log/slog"
 	"sync"
 
@@ -64,6 +65,10 @@ func (r Runner) Threads(threads int) Runner {
 // }
 
 func (r Runner) Run() error {
+	// Create a context for cancellation
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Workers get tasks from this channel
 	tasks := make(chan cmd.Cmd)
 
@@ -90,12 +95,22 @@ func (r Runner) Run() error {
 		go func() {
 			defer wg.Done()
 			for c := range tasks {
+				// Check if the context is canceled
+				select {
+				case <-ctx.Done():
+					return // Stop processing tasks
+				default:
+				}
+
+				// Execute the task
 				if r.dryRun {
 					slog.Debug("DRY-RUN: Run", "cmd", c.String())
 				} else {
-					if err := c.Run(); err != nil {
+					if err := c.Run(ctx); err != nil {
+						// Send the error to the results channel
 						results <- err
-						return
+						cancel() // Signal cancellation to all workers
+						return   // Stop this worker
 					}
 				}
 			}
@@ -108,9 +123,12 @@ func (r Runner) Run() error {
 		close(results)
 	}()
 
-	for res := range results {
-		slog.Debug("Print", "result", res)
+	for err := range results {
+		if err != nil {
+			slog.Debug("Worker encountered error", "error", err)
+			return err
+		}
 	}
 
-	return <-results
+	return nil
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -48,12 +49,12 @@ func (c Cmd) PostInfo(msg string) Cmd {
 	return c
 }
 
-func (c Cmd) Run() error {
+func (c Cmd) Run(ctx context.Context) error {
 	if c.preText != "" {
 		slog.Info(c.preText)
 	}
 
-	cmd := exec.Command(c.cmd, c.args...)
+	cmd := exec.CommandContext(ctx, c.cmd, c.args...)
 
 	// pipe the commands output to the applications
 	if c.verbose {

@@ -175,7 +175,7 @@ func collectTags(img config.ImageConfig, configSet map[string]interface{}, name 
 	return tags
 }
 
-// getCombinations generates all combinations of variables
+// generates all combinations of variables
 func getCombinations(variables map[string][]interface{}) []map[string]interface{} {
 	// Extract keys
 	keys := make([]string, 0, len(variables))
