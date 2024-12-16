@@ -20,14 +20,16 @@ Usage:
   td [flags]
 
 Flags:
+  -b, --build           Build Docker images after templating
   -c, --config string   Path to the configuration file (required)
-  -d, --dry-run         Print actions but don't execute them
+  -d, --delete          Delete templated Dockerfiles after successful building
   -h, --help            help for td
-      --parallel int    Specify the number of threads to use, defaults to number of CPUs
+      --parallel int    Specify the number of threads to use, defaults to number of CPUs (default 20)
   -p, --push            Push Docker images after building
   -t, --tag string      Tag to use as the image version
   -v, --verbose         Increase verbosity of output
   -V, --version         Display the application version and exit
+
 ```
 
 Installation
@@ -185,7 +187,7 @@ images:
 Call build like:
 
 ```bash
-td --config build.yaml --tag v1.2.3
+td --config build.yaml --tag v1.2.3 --build --delete
 ```
 
 Which will produce 2x3 -> 6 images, with 12 labels:
