@@ -1,9 +1,9 @@
 package config
 
 import (
-	"log/slog"
 	"os"
 
+	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -26,7 +26,7 @@ type ImageConfig struct {
 func Load(filename string) (*Config, error) {
 	file, err := os.Open(filename)
 	if err != nil {
-		slog.Error("Error loading config", "error", err)
+		log.Error().Err(err).Msg("Error loading config")
 		return nil, err
 	}
 	defer file.Close()
@@ -34,7 +34,7 @@ func Load(filename string) (*Config, error) {
 	var cfg Config
 	decoder := yaml.NewDecoder(file)
 	if err := decoder.Decode(&cfg); err != nil {
-		slog.Error("Decoding YAML "+filename+" failed! Check syntax and try again", "error", err)
+		log.Error().Err(err).Msg("Decoding YAML " + filename + " failed! Check syntax and try again")
 		return nil, err
 	}
 	return &cfg, nil

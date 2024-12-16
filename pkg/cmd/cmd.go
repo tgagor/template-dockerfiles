@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"context"
-	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/rs/zerolog/log"
 )
 
 type Cmd struct {
@@ -51,7 +52,7 @@ func (c Cmd) PostInfo(msg string) Cmd {
 
 func (c Cmd) Run(ctx context.Context) error {
 	if c.preText != "" {
-		slog.Info(c.preText)
+		log.Info().Msg(c.preText)
 	}
 
 	cmd := exec.CommandContext(ctx, c.cmd, c.args...)
@@ -62,14 +63,14 @@ func (c Cmd) Run(ctx context.Context) error {
 		cmd.Stderr = os.Stderr
 	}
 
-	slog.Debug("Running", "cmd", c.cmd, "args", c.args)
+	log.Debug().Str("cmd", c.cmd).Interface("args", c.args).Msg("Running")
 	if err := cmd.Run(); err != nil {
-		slog.Error("Could not run command", "error", err)
+		log.Error().Err(err).Msg("Could not run command")
 		return err
 	}
 
 	if c.postText != "" {
-		slog.Info(c.postText)
+		log.Info().Msg(c.postText)
 	}
 	return nil
 }

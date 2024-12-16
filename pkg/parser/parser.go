@@ -3,7 +3,6 @@ package parser
 import (
 	"bytes"
 	"fmt"
-	"log/slog"
 	"maps"
 	"os"
 	"path"
@@ -15,6 +14,7 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/rs/zerolog/log"
 
 	"github.com/tgagor/template-dockerfiles/pkg/cmd"
 	"github.com/tgagor/template-dockerfiles/pkg/config"
@@ -27,11 +27,11 @@ import (
 // TODO: I should split this method to smaller chunks
 func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 	for name, img := range cfg.Images {
-		slog.Debug("Analyzing", "image", name, "config", img)
+		log.Debug().Str("image", name).Interface("config", img).Msg("Analyzing")
 		dockerfileTemplate := filepath.Join(workdir, img.Dockerfile)
-		slog.Debug("Loading dockerfile: " + dockerfileTemplate)
+		log.Debug().Str("dockerfile template", dockerfileTemplate).Msg("Loading")
 		if img.Excludes != nil {
-			slog.Debug("Excluded config sets", "excludes", img.Excludes)
+			log.Debug().Interface("excludes", img.Excludes).Msg("Excluded config sets")
 		}
 
 		var tempFiles []string
@@ -55,13 +55,13 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			configSet["labels"] = make(map[string]string)
 			maps.Copy(configSet["labels"].(map[string]string), cfg.GlobalLabels)
 			maps.Copy(configSet["labels"].(map[string]string), img.Labels)
-			slog.Info("Building", "image", name)
+			log.Info().Str("image", name).Msg("Building")
 			// if(flag.Verbose) {
 			// 	fmt.Println("config set" + util.PrettyPrintMap(configSet))
 			// }
 
 			if isExcluded(configSet, img.Excludes) {
-				slog.Debug("Skipping excluded", "config set", configSet, "excludes", img.Excludes)
+				log.Debug().Interface("config set", configSet).Interface("excludes", img.Excludes).Msg("Skipping excluded")
 				continue // break here, this set is excluded
 			}
 
@@ -73,7 +73,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			maps.Copy(labels, collectLabels(configSet))
 
 			dockerfile := getDockerfilePath(dockerfileTemplate, name, configSet)
-			slog.Debug("Generating temporary Dockerfile: " + dockerfile)
+			log.Debug().Str("dockerfile", dockerfile).Msg("Generating temporary")
 			tempFiles = append(tempFiles, dockerfile)
 
 			// name required to avoid collisions between images
@@ -135,7 +135,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 		// Cleanup temporary files
 		if flag.Delete {
-			slog.Debug("Removing temporary", "files", tempFiles)
+			log.Debug().Interface("files", tempFiles).Msg("Removing temporary")
 			for _, file := range tempFiles {
 				defer removeFile(file)
 			}
@@ -151,10 +151,7 @@ func collectLabels(configSet map[string]interface{}) map[string]string {
 	labels, err := templateLabels(configSet["labels"].(map[string]string), configSet)
 	util.FailOnError(err)
 	if len(labels) > 0 {
-		slog.Info("Generating labels:")
-		for l, v := range labels {
-			slog.Info("  ", l, v)
-		}
+		log.Info().Interface("labels", labels).Msg("Generating")
 	}
 	return labels
 }
@@ -163,13 +160,10 @@ func collectTags(img config.ImageConfig, configSet map[string]interface{}, name 
 	tags, err := templateTags(img.Tags, configSet)
 	util.FailOnError(err)
 	if len(tags) > 0 {
-		slog.Info("Generating tags:")
-		for _, t := range tags {
-			slog.Info("  ", "tag", t)
-		}
+		log.Info().Interface("tags", tags).Msg("Generating")
 	} else {
-		slog.Error("No 'tags' defined for", "image", name)
-		slog.Error("Building without 'tags', would just overwrite images in place, which is pointless. Add 'tags' block to continue.")
+		log.Error().Str("image", name).Msg("No 'tags' defined for")
+		log.Error().Msg("Building without 'tags', would just overwrite images in place, which is pointless. Add 'tags' block to continue.")
 		os.Exit(1)
 	}
 	return tags
@@ -266,7 +260,7 @@ func templateFile(templateFile string, destinationFile string, args map[string]i
 
 	f, err := os.Create(destinationFile)
 	if err != nil {
-		slog.Error("Failed to create a file: "+templateFile, "error", err)
+		log.Error().Err(err).Str("file", templateFile).Msg("Failed to create")
 		return err
 	}
 	defer f.Close()
@@ -279,7 +273,7 @@ func templateFile(templateFile string, destinationFile string, args map[string]i
 
 	// Render templates using variables
 	if err := t.Execute(f, args); err != nil {
-		slog.Error("Failed to template file: "+templateFile, "error", err)
+		log.Error().Err(err).Str("file", templateFile).Msg("Failed to template")
 		return err
 	}
 
@@ -370,8 +364,8 @@ func isExcluded(item map[string]interface{}, excludes []map[string]string) bool 
 }
 
 func removeFile(file string) {
-	slog.Debug("Removing temporary file: " + file)
+	log.Debug().Str("file", file).Msg("Removing temporary")
 	if err := os.Remove(file); err != nil {
-		slog.Error("Failed to remove file", slog.Any("error", err))
+		log.Error().Err(err).Str("file", file).Msg("Failed to remove")
 	}
 }

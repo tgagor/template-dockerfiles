@@ -2,8 +2,9 @@ package runner
 
 import (
 	"context"
-	"log/slog"
 	"sync"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/tgagor/template-dockerfiles/pkg/cmd"
 )
@@ -87,7 +88,7 @@ func (r Runner) Run() error {
 
 	// use minimum required amount of workers
 	threads := min(r.threads, len(r.tasks))
-	slog.Debug("Aquired parallelism", "threads", threads, "max", max(r.threads, len(r.tasks)))
+	log.Debug().Int("threads", threads).Int("max", max(r.threads, len(r.tasks))).Msg("Aquired parallelism")
 
 	// Start the specified number of workers.
 	for i := 0; i < threads; i++ {
@@ -104,7 +105,7 @@ func (r Runner) Run() error {
 
 				// Execute the task
 				if r.dryRun {
-					slog.Debug("DRY-RUN: Run", "cmd", c.String())
+					log.Debug().Str("cmd", c.String()).Msg("DRY-RUN: Run")
 				} else {
 					if err := c.Run(ctx); err != nil {
 						// Send the error to the results channel
@@ -125,7 +126,7 @@ func (r Runner) Run() error {
 
 	for err := range results {
 		if err != nil {
-			slog.Debug("Worker encountered error", "error", err)
+			log.Error().Err(err).Msg("Worker encountered error")
 			return err
 		}
 	}

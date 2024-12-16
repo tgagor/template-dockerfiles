@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
 
+	"github.com/mattn/go-colorable"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
 	"github.com/tgagor/template-dockerfiles/pkg/config"
@@ -47,31 +48,31 @@ When 'docker build' is just not enough. :-)`,
 
 		// Main logic goes here
 		if flags.Verbose {
-			slog.Debug("Verbose mode enabled.")
+			log.Debug().Msg("Verbose mode enabled.")
 		}
 		if flags.Push && !flags.Build {
-			slog.Error("'--push' flag makes no sense without '--build'")
+			log.Error().Msg("'--push' flag makes no sense without '--build'")
 			os.Exit(2)
 		}
 		if flags.Build {
-			slog.Info("Images will be build after templating.")
+			log.Info().Msg("Images will be build after templating.")
 		}
 		if flags.Push {
-			slog.Warn("Images will be pushed after building.")
+			log.Warn().Msg("Images will be pushed after building.")
 		}
 		if flags.Delete {
-			slog.Warn("Templated Dockerfiles will be deleted at end.")
+			log.Warn().Msg("Templated Dockerfiles will be deleted at end.")
 		}
-		slog.Info("Number of", "threads", flags.Threads)
+		log.Info().Int("threads", flags.Threads).Msg("Number of")
 		if flags.Tag != "" {
-			slog.Info("Setting", "tag", flags.Tag)
+			log.Info().Str("tag", flags.Tag).Msg("Setting")
 		}
 
 		// Parse configuration file
-		slog.Info("Loading", "config", flags.BuildFile)
+		log.Info().Str("config", flags.BuildFile).Msg("Loading")
 		cfg, err := config.Load(flags.BuildFile)
 		util.FailOnError(err)
-		slog.Debug("Loaded", "config", cfg)
+		log.Trace().Str("config", fmt.Sprintf("%#v", cfg)).Msg("Loaded")
 
 		// Run templating and image building
 		workdir := filepath.Dir(flags.BuildFile)
@@ -106,12 +107,28 @@ func main() {
 }
 
 func initLogger(verbose bool) {
-	// Disable timestamp in logger
-	log.SetFlags(log.Flags() &^ (log.Ldate | log.Ltime))
-	// Configure log level
+	// Console writer
+	consoleWriter := zerolog.ConsoleWriter{
+		Out:     colorable.NewColorableStdout(),
+		NoColor: false,
+	}
+	// Disable timestamps
+	zerolog.TimeFieldFormat = ""
+	consoleWriter.FormatTimestamp = func(i interface{}) string {
+		return ""
+	}
+
+	// Base logger
+	baseLogger := zerolog.New(consoleWriter).With().Logger()
+
+	// Add caller only for debug level using a hook
 	if verbose {
-		slog.SetLogLoggerLevel(slog.LevelDebug)
+		log.Logger = baseLogger.Hook(zerolog.HookFunc(func(e *zerolog.Event, level zerolog.Level, msg string) {
+			if level == zerolog.DebugLevel {
+				e.Caller()
+			}
+		})).Level(zerolog.DebugLevel)
 	} else {
-		slog.SetLogLoggerLevel(slog.LevelInfo)
+		log.Logger = baseLogger.Level(zerolog.InfoLevel)
 	}
 }

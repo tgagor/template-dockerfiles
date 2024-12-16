@@ -2,8 +2,9 @@ package parser
 
 import (
 	"fmt"
-	"log/slog"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	git "github.com/go-git/go-git/v5"
 )
@@ -27,7 +28,7 @@ func getOCILabels(cfg map[string]interface{}) map[string]string {
 
 	originUrl, hexsha, branch, err := readGitRepo(".")
 	if err != nil {
-		slog.Warn("Not being able to read git repo metadata, or not a git repo. Skipping.", "error", err)
+		log.Warn().Err(err).Msg("Not being able to read git repo metadata, or not a git repo. Skipping.")
 	} else {
 		if originUrl != "" {
 			labels["org.opencontainers.image.source"] = originUrl
@@ -40,7 +41,7 @@ func getOCILabels(cfg map[string]interface{}) map[string]string {
 		}
 	}
 
-	slog.Debug("Adding OCI", "labels", labels)
+	log.Debug().Interface("labels", labels).Msg("Adding OCI")
 	return labels
 }
 
