@@ -36,6 +36,7 @@ Thumbs.db           # Windows
 # Binary files
 *.o
 *.a
+__debug_*
 
 .env
 .env.local

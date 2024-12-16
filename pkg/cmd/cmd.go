@@ -64,8 +64,7 @@ func (c Cmd) Run() error {
 	slog.Debug("Running", "cmd", c.cmd, "args", c.args)
 	if err := cmd.Run(); err != nil {
 		slog.Error("Could not run command", "error", err)
-		panic("Command " + cmd.String() + " failed!")
-		// return err
+		return err
 	}
 
 	if c.postText != "" {

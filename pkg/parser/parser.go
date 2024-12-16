@@ -42,7 +42,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 		pushTasks := runner.New().Threads(flag.Threads).DryRun(!flag.Build)
 		cleanupTasks := runner.New().Threads(flag.Threads).DryRun(!flag.Build)
 
-		combinations := getCombinations(convertToInterfaceMap(img.Variables))
+		combinations := getCombinations(img.Variables)
 		for _, configSet := range combinations {
 			// FIXME: This way of setting variables might collide with overrides
 			// 		  set in "variables" section, I need to change order here.
@@ -215,20 +215,6 @@ func getCombinations(variables map[string][]interface{}) []map[string]interface{
 	generate(0, make(map[string]interface{}))
 
 	return combinations
-}
-
-// this allows to treat both strings and integers the same
-func convertToInterfaceMap(input map[string][]string) map[string][]interface{} {
-	output := make(map[string][]interface{}, len(input))
-	for key, values := range input {
-		// Convert each []string to []interface{}
-		interfaces := make([]interface{}, len(values))
-		for i, v := range values {
-			interfaces[i] = v
-		}
-		output[key] = interfaces
-	}
-	return output
 }
 
 func templateTags(tagTemplates []string, configSet map[string]interface{}) ([]string, error) {
