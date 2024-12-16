@@ -66,6 +66,7 @@ jobs:
         GOOS: ${{ matrix.os }}
         GOARCH: ${{ matrix.arch }}
       run: |
+        set -x
         go version
 
         export CGO_ENABLED=0
@@ -134,16 +135,16 @@ jobs:
         run: |
           chmod +x ${{ matrix.binary }}
           ./${{ matrix.binary }} -V
-          ./${{ matrix.binary }} --config tests/test-1.yaml --tag ${VERSION} --push --dry-run
-          ./${{ matrix.binary }} --config tests/test-2.yaml --tag ${VERSION} --push --dry-run
+          ./${{ matrix.binary }} --config tests/test-1.yaml --tag ${VERSION} --build --delete
+          ./${{ matrix.binary }} --config tests/test-2.yaml --tag ${VERSION} --build --delete
 
       - name: Run test on Windows
         if: matrix.os == 'windows-latest'
         shell: cmd
         run: |
           .\\${{ matrix.binary }} -V
-          .\\${{ matrix.binary }} --config tests/test-1.yaml --tag ${VERSION} --push --dry-run
-          .\\${{ matrix.binary }} --config tests/test-2.yaml --tag ${VERSION} --push --dry-run
+          .\\${{ matrix.binary }} --config tests/test-1.yaml --tag ${VERSION} --build --delete
+          .\\${{ matrix.binary }} --config tests/test-2.yaml --tag ${VERSION} --build --delete
 
   release:
     permissions: write-all
