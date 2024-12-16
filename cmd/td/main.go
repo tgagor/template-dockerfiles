@@ -14,7 +14,7 @@ import (
 	"github.com/tgagor/template-dockerfiles/pkg/util"
 )
 
-var Version string // Will be set dynamically at build time.
+var BuildVersion string // Will be set dynamically at build time.
 var appName string = "td"
 var flags config.Flags
 
@@ -40,7 +40,7 @@ When 'docker build' is just not enough. :-)`,
 
 		// If version flag is provided, show the version and exit.
 		if flags.PrintVersion {
-			fmt.Printf("%s version: %s\n", appName, Version)
+			fmt.Printf("%s version: %s\n", appName, BuildVersion)
 			return
 		}
 
@@ -73,15 +73,15 @@ When 'docker build' is just not enough. :-)`,
 }
 
 func init() {
-	if Version == "" {
-		Version = "development" // Fallback if not set during build
+	if BuildVersion == "" {
+		BuildVersion = "development" // Fallback if not set during build
 	}
 
 	cmd.PersistentFlags().StringVarP(&flags.BuildFile, "config", "c", "", "Path to the configuration file (required)")
 	// rootCmd.MarkPersistentFlagRequired("config")
 
-	cmd.Flags().BoolVarP(&flags.DryRun, "dry-run", "d", false, "Print actions but don't execute them")
 	cmd.Flags().BoolVarP(&flags.Push, "push", "p", false, "Push Docker images after building")
+	cmd.Flags().BoolVarP(&flags.DryRun, "dry-run", "d", false, "Print actions but don't execute them")
 	cmd.Flags().IntVar(&flags.Threads, "parallel", runtime.NumCPU(), "Specify the number of threads to use, defaults to number of CPUs")
 	cmd.Flags().StringVarP(&flags.Tag, "tag", "t", "", "Tag to use as the image version")
 	cmd.Flags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Increase verbosity of output")

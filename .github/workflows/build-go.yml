@@ -78,7 +78,7 @@ jobs:
           OUTPUT_NAME=td-macos-${{ matrix.arch }}
         fi
         go build \
-          -ldflags="-X main.Version=${VERSION}" \
+          -ldflags="-X main.BuildVersion=${VERSION}" \
           -o bin/$OUTPUT_NAME \
           ./cmd/td
 
