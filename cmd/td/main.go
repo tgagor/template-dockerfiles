@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"runtime"
 
@@ -48,11 +49,18 @@ When 'docker build' is just not enough. :-)`,
 		if flags.Verbose {
 			slog.Debug("Verbose mode enabled.")
 		}
-		// if flags.DryRun {
-		// 	slog.Info("Dry run enabled - no actions will be executed.")
-		// }
+		if flags.Push && !flags.Build {
+			slog.Error("'--push' flag makes no sense without '--build'")
+			os.Exit(2)
+		}
+		if flags.Build {
+			slog.Info("Images will be build after templating.")
+		}
 		if flags.Push {
 			slog.Warn("Images will be pushed after building.")
+		}
+		if flags.Delete {
+			slog.Warn("Templated Dockerfiles will be deleted at end.")
 		}
 		slog.Info("Number of", "threads", flags.Threads)
 		if flags.Tag != "" {
