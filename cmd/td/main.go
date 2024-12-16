@@ -48,9 +48,9 @@ When 'docker build' is just not enough. :-)`,
 		if flags.Verbose {
 			slog.Debug("Verbose mode enabled.")
 		}
-		if flags.DryRun {
-			slog.Info("Dry run enabled - no actions will be executed.")
-		}
+		// if flags.DryRun {
+		// 	slog.Info("Dry run enabled - no actions will be executed.")
+		// }
 		if flags.Push {
 			slog.Warn("Images will be pushed after building.")
 		}
@@ -80,8 +80,10 @@ func init() {
 	cmd.PersistentFlags().StringVarP(&flags.BuildFile, "config", "c", "", "Path to the configuration file (required)")
 	// rootCmd.MarkPersistentFlagRequired("config")
 
+	cmd.Flags().BoolVarP(&flags.Build, "build", "b", false, "Build Docker images after templating")
 	cmd.Flags().BoolVarP(&flags.Push, "push", "p", false, "Push Docker images after building")
-	cmd.Flags().BoolVarP(&flags.DryRun, "dry-run", "d", false, "Print actions but don't execute them")
+	cmd.Flags().BoolVarP(&flags.Delete, "delete", "d", false, "Delete templated Dockerfiles after successful building")
+	// cmd.Flags().BoolVarP(&flags.DryRun, "dry-run", "d", false, "Print actions but don't execute them")
 	cmd.Flags().IntVar(&flags.Threads, "parallel", runtime.NumCPU(), "Specify the number of threads to use, defaults to number of CPUs")
 	cmd.Flags().StringVarP(&flags.Tag, "tag", "t", "", "Tag to use as the image version")
 	cmd.Flags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Increase verbosity of output")

@@ -5,7 +5,7 @@ run:
 	go run \
 		-ldflags="-X main.BuildVersion=$(VERSION)" \
 		./cmd/td \
-		--config example/build.yaml \
+		--config example/complex.yaml \
 		--tag v1.2.3
 
 bin/td: build

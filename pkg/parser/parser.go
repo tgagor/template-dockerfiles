@@ -36,11 +36,11 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 		var tempFiles []string
 
-		buildTasks := runner.New().Threads(flag.Threads).DryRun(flag.DryRun)
+		buildTasks := runner.New().Threads(flag.Threads).DryRun(!flag.Build)
 		// labelling have to happen in order, so no parallelism
-		taggingTasks := runner.New().DryRun(flag.DryRun)
-		pushTasks := runner.New().Threads(flag.Threads).DryRun(flag.DryRun)
-		cleanupTasks := runner.New().Threads(flag.Threads).DryRun(flag.DryRun)
+		taggingTasks := runner.New().DryRun(!flag.Build)
+		pushTasks := runner.New().Threads(flag.Threads).DryRun(!flag.Build)
+		cleanupTasks := runner.New().Threads(flag.Threads).DryRun(!flag.Build)
 
 		combinations := getCombinations(convertToInterfaceMap(img.Variables))
 		for _, configSet := range combinations {
@@ -78,10 +78,8 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 			// name required to avoid collisions between images
 			currentImage := name + "-" + getCombinationString(configSet)
-			if !flag.DryRun {
-				err := templateFile(dockerfileTemplate, dockerfile, configSet)
-				util.FailOnError(err)
-			}
+			err := templateFile(dockerfileTemplate, dockerfile, configSet)
+			util.FailOnError(err)
 
 			// collect building image commands
 			builder := cmd.New("docker").
@@ -122,21 +120,23 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			cleanupTasks = cleanupTasks.AddTask(dropTempLabel)
 		}
 
-		err := buildTasks.Run()
-		util.FailOnError(err)
-		err = taggingTasks.Run()
-		util.FailOnError(err)
-		err = cleanupTasks.Run()
-		util.FailOnError(err)
+		if flag.Build {
+			err := buildTasks.Run()
+			util.FailOnError(err)
+			err = taggingTasks.Run()
+			util.FailOnError(err)
+			err = cleanupTasks.Run()
+			util.FailOnError(err)
+		}
 		if flag.Push {
 			err := pushTasks.Run()
 			util.FailOnError(err)
 		}
 
 		// Cleanup temporary files
-		slog.Debug("Removing temporary", "files", tempFiles)
-		for _, file := range tempFiles {
-			if !flag.DryRun {
+		if flag.Delete {
+			slog.Debug("Removing temporary", "files", tempFiles)
+			for _, file := range tempFiles {
 				defer removeFile(file)
 			}
 		}
