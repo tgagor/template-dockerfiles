@@ -231,7 +231,7 @@ func squashImages(flag config.Flags, toSquash []string) {
 			}
 		}
 		importIt = importIt.Arg(tmpTarFile).Arg(sanitizedImg).
-			SetVerbose(flag.Verbose).PreInfo("Importing TAR " + img)
+			SetVerbose(flag.Verbose)
 		importTarsToImgs = importTarsToImgs.AddTask(importIt)
 
 		squashed = append(squashed, sanitizedImg)
