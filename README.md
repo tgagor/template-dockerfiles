@@ -26,10 +26,10 @@ Flags:
   -h, --help            help for td
       --parallel int    Specify the number of threads to use, defaults to number of CPUs (default 20)
   -p, --push            Push Docker images after building
+  -s, --squash          Squash images to reduce size (experimental)
   -t, --tag string      Tag to use as the image version
   -v, --verbose         Increase verbosity of output
   -V, --version         Display the application version and exit
-
 ```
 
 Installation
