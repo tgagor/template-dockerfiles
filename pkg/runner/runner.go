@@ -107,7 +107,7 @@ func (r Runner) Run() error {
 				if r.dryRun {
 					log.Debug().Str("cmd", c.String()).Msg("DRY-RUN: Run")
 				} else {
-					if err := c.Run(ctx); err != nil {
+					if _, err := c.Run(ctx); err != nil {
 						// Send the error to the results channel
 						results <- err
 						cancel() // Signal cancellation to all workers
@@ -126,7 +126,8 @@ func (r Runner) Run() error {
 
 	for err := range results {
 		if err != nil {
-			log.Error().Err(err).Msg("Worker encountered error")
+			// cmd prints it anyway
+			// log.Error().Err(err).Msg("Worker encountered error")
 			return err
 		}
 	}

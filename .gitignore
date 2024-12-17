@@ -4,6 +4,7 @@ __pycache__
 .venv
 *.pyc
 *.Dockerfile
+*.tar
 .poetry-version
 *.bak
 *.old

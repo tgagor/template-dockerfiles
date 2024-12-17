@@ -1,13 +1,14 @@
 package config
 
 type Flags struct {
-	BuildFile    string
-	DryRun       bool
 	Build        bool
-	Push         bool
+	BuildFile    string
 	Delete       bool
-	Threads      int
-	Tag          string
-	Verbose      bool
+	DryRun       bool
 	PrintVersion bool
+	Push         bool
+	Squash       bool
+	Tag          string
+	Threads      int
+	Verbose      bool
 }

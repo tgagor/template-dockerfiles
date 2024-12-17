@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"os/exec"
@@ -15,6 +16,7 @@ type Cmd struct {
 	verbose  bool
 	preText  string
 	postText string
+	output   string
 }
 
 func New(c string) Cmd {
@@ -50,7 +52,7 @@ func (c Cmd) PostInfo(msg string) Cmd {
 	return c
 }
 
-func (c Cmd) Run(ctx context.Context) error {
+func (c Cmd) Run(ctx context.Context) (string, error) {
 	if c.preText != "" {
 		log.Info().Msg(c.preText)
 	}
@@ -58,23 +60,73 @@ func (c Cmd) Run(ctx context.Context) error {
 	cmd := exec.CommandContext(ctx, c.cmd, c.args...)
 
 	// pipe the commands output to the applications
+	var b bytes.Buffer
 	if c.verbose {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
+	} else {
+		cmd.Stdout = &b
+		cmd.Stderr = &b
 	}
 
 	log.Debug().Str("cmd", c.cmd).Interface("args", c.args).Msg("Running")
-	if err := cmd.Run(); err != nil {
-		log.Error().Err(err).Msg("Could not run command")
-		return err
+	err := cmd.Run()
+
+	// Check for context cancellation or timeout
+	if ctx.Err() != nil {
+		// If the context was canceled, suppress output and return context error
+		if ctx.Err() == context.Canceled {
+			log.Warn().Str("cmd", c.cmd).Msg("Command was cancelled")
+		} else if ctx.Err() == context.DeadlineExceeded {
+			log.Warn().Str("cmd", c.cmd).Msg("Command timed out")
+		}
+		return "", ctx.Err()
 	}
+
+	// Handle other errors
+	if err != nil {
+		log.Error().Err(err).Str("cmd", c.cmd).Interface("args", c.args).Msg("Could not run command")
+		// c.setOutput(&b)
+		c.output = b.String()
+		log.Error().Msg(c.output)
+		return c.output, err
+	}
+	c.output = b.String()
 
 	if c.postText != "" {
 		log.Info().Msg(c.postText)
 	}
-	return nil
+	return c.output, nil
 }
 
 func (c Cmd) String() string {
 	return c.cmd + " " + strings.Join(c.args, " ")
+}
+
+func (c Cmd) Output() (string, error) {
+	cmd := exec.Command(c.cmd, c.args...)
+
+	// pipe the commands output to the applications
+	var b bytes.Buffer
+	if c.verbose {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	} else {
+		cmd.Stdout = &b
+		cmd.Stderr = &b
+	}
+
+	log.Debug().Str("cmd", c.cmd).Interface("args", c.args).Msg("Running")
+	err := cmd.Run()
+
+	// Handle other errors
+	if err != nil {
+		log.Error().Err(err).Str("cmd", c.cmd).Interface("args", c.args).Msg("Could not run command")
+		c.output = b.String()
+		log.Error().Msg(c.output)
+		return c.output, err
+	}
+	c.output = b.String()
+
+	return c.output, nil
 }

@@ -2,6 +2,7 @@ package parser
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"maps"
 	"os"
@@ -34,7 +35,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			log.Debug().Interface("excludes", img.Excludes).Msg("Excluded config sets")
 		}
 
-		var tempFiles []string
+		var toSquash []string
 
 		buildTasks := runner.New().Threads(flag.Threads).DryRun(!flag.Build)
 		// labelling have to happen in order, so no parallelism
@@ -74,7 +75,11 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 			dockerfile := getDockerfilePath(dockerfileTemplate, name, configSet)
 			log.Debug().Str("dockerfile", dockerfile).Msg("Generating temporary")
-			tempFiles = append(tempFiles, dockerfile)
+
+			// Cleanup temporary files
+			if flag.Delete {
+				defer removeFile(dockerfile)
+			}
 
 			// name required to avoid collisions between images
 			currentImage := name + "-" + getCombinationString(configSet)
@@ -90,6 +95,11 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 				Arg(filepath.Dir(dockerfileTemplate)).
 				SetVerbose(flag.Verbose)
 			buildTasks = buildTasks.AddTask(builder)
+
+			// squash if demanded
+			if flag.Squash {
+				toSquash = append(toSquash, currentImage)
+			}
 
 			// collect tagging commands to keep order
 			for _, t := range tags {
@@ -122,29 +132,127 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 		if flag.Build {
 			err := buildTasks.Run()
-			util.FailOnError(err)
-			err = taggingTasks.Run()
-			util.FailOnError(err)
+			util.FailOnError(err, "Building failed with error, check error above. Exiting.")
+		}
+
+		// let squash it
+		if flag.Build && flag.Squash {
+			squashImages(flag, toSquash)
+		}
+
+		// continue classical build
+		if flag.Build {
+			err := taggingTasks.Run()
+			util.FailOnError(err, "Tagging failed with error, check error above. Exiting.")
 			err = cleanupTasks.Run()
-			util.FailOnError(err)
+			util.FailOnError(err, "Dropping temporary images failed. Exiting.")
 		}
 		if flag.Push {
 			err := pushTasks.Run()
-			util.FailOnError(err)
-		}
-
-		// Cleanup temporary files
-		if flag.Delete {
-			log.Debug().Interface("files", tempFiles).Msg("Removing temporary")
-			for _, file := range tempFiles {
-				defer removeFile(file)
-			}
+			util.FailOnError(err, "Pushing images failed, check error above. Exiting.")
 		}
 
 		fmt.Println("")
 
 	}
 	return nil
+}
+
+func squashImages(flag config.Flags, toSquash []string) {
+	runImages := runner.New().Threads(flag.Threads).DryRun(!flag.Build)
+	exportImages := runner.New().Threads(flag.Threads).DryRun(!flag.Build)
+	removeDeadContainers := runner.New().Threads(flag.Threads).DryRun(!flag.Build)
+	importTarsToImgs := runner.New().Threads(flag.Threads).DryRun(!flag.Build)
+
+	var squashed []string
+
+	for _, img := range toSquash {
+		sanitizedImg := sanitizeForFileName(img)
+
+		runItFirst := cmd.New("docker").
+			Arg("run").
+			Arg("--name", sanitizedImg).
+			Arg(img).
+			Arg("true").
+			SetVerbose(flag.Verbose)
+		runImages = runImages.AddTask(runItFirst)
+
+		imgMetadata, err := inspectImg(img)
+		util.FailOnError(err, "Couldn't inspect Docker image.")
+		log.Debug().Interface("data", imgMetadata).Msg("Docker inspect result")
+
+		tmpTarFile := sanitizedImg + ".tar"
+		exportIt := cmd.New("docker").
+			Arg("export").
+			Arg(sanitizedImg).
+			Arg("-o", tmpTarFile).
+			PreInfo(fmt.Sprintf("Squashing %s of size: %s", img, ByteCountIEC(imgMetadata[0].Size))).
+			SetVerbose(flag.Verbose)
+		exportImages = exportImages.AddTask(exportIt)
+		dropIt := cmd.New("docker").Arg("rm").Arg("-f").Arg(sanitizedImg)
+		removeDeadContainers = removeDeadContainers.AddTask(dropIt)
+
+		importIt := cmd.New("docker").Arg("import")
+		for _, item := range imgMetadata {
+			// paring ENV
+			for _, env := range item.Config.Env {
+				importIt = importIt.Arg("--change", "ENV "+env)
+			}
+
+			// parsing CMD
+			if command, err := json.Marshal(item.Config.Cmd); err != nil {
+				log.Error().Err(err).Str("image", img).Msg("Can't parse CMD")
+			} else {
+				importIt = importIt.Arg("--change", "CMD "+string(command))
+			}
+
+			// parsing VOLUME
+			if vol, err := json.Marshal(item.Config.Volumes); err != nil {
+				log.Error().Err(err).Str("image", img).Msg("Can't parse VOLUME")
+			} else {
+				importIt = importIt.Arg("--change", "VOLUME "+string(vol))
+			}
+
+			// parsing LABELS
+			for key, value := range item.Config.Labels {
+				importIt = importIt.Arg("--change", fmt.Sprintf("LABEL %s=\"%s\"", key, strings.ReplaceAll(value, "\n", "")))
+			}
+
+			// parsing ENTRYPOINT
+			if entrypoint, err := json.Marshal(item.Config.Entrypoint); err != nil {
+				log.Error().Err(err).Str("image", img).Msg("Can't parse ENTRYPOINT")
+			} else {
+				importIt = importIt.Arg("--change", "CMD "+string(entrypoint))
+			}
+
+			// parsing WORKDIR
+			if item.Config.WorkingDir != "" {
+				importIt = importIt.Arg("--change", "WORKDIR "+item.Config.WorkingDir)
+			}
+		}
+		importIt = importIt.Arg(tmpTarFile).Arg(sanitizedImg).
+			SetVerbose(flag.Verbose).PreInfo("Importing TAR " + img)
+		importTarsToImgs = importTarsToImgs.AddTask(importIt)
+
+		squashed = append(squashed, sanitizedImg)
+		defer removeFile(tmpTarFile)
+	}
+
+	err := runImages.Run()
+	util.FailOnError(err)
+	err = exportImages.Run()
+	util.FailOnError(err)
+	err = removeDeadContainers.Run()
+	util.FailOnError(err)
+	err = importTarsToImgs.Run()
+	util.FailOnError(err)
+
+	for _, img := range squashed {
+		imgMetadata, err := inspectImg(img)
+		util.FailOnError(err, "Couldn't inspect Docker image.")
+		log.Debug().Interface("data", imgMetadata).Msg("Docker inspect result")
+		log.Info().Msg(fmt.Sprintf("Squashed %s to size: %s", img, ByteCountIEC(imgMetadata[0].Size)))
+	}
 }
 
 func collectLabels(configSet map[string]interface{}) map[string]string {

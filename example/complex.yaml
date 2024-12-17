@@ -15,7 +15,6 @@ labels:
 
     Let try templates here.
     Image test-case-2d on Alpine Linux {{ .alpine }}
-  org.opencontainers.image.test-case-2.name: alpine:{{ .alpine }}
 
 images:
   base:
