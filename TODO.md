@@ -93,3 +93,6 @@ Ideas and wishlist
       TARGETVARIANT
       ```
     - proper verification for allowed values have to be added
+6. Add "name" of image to the configSet so it would be available as variable when templating
+7. Use ordered YAML read as it happen now randomly that elements are executed in wrong order
+   https://blog.labix.org/2014/09/22/announcing-yaml-v2-for-go
