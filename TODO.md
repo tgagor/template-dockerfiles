@@ -96,3 +96,5 @@ Ideas and wishlist
 6. Add "name" of image to the configSet so it would be available as variable when templating
 7. Use ordered YAML read as it happen now randomly that elements are executed in wrong order
    https://blog.labix.org/2014/09/22/announcing-yaml-v2-for-go
+8. Add `--image` flag that would allow to build only one image, by it's name, which would support debugging of issues, without the need to rebuild all the images again and again
+9. Add `--workdir` flag, to allow defining where temporary templates or tar packages should be placed as current dir or Dockerfiles dir might not be preffered in some situations
