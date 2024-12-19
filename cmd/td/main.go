@@ -42,7 +42,8 @@ When 'docker build' is just not enough. :-)`,
 
 		// If version flag is provided, show the version and exit.
 		if flags.PrintVersion {
-			fmt.Printf("%s version: %s\n", appName, BuildVersion)
+			// v0.6.3 (go1.23.4 on darwin/arm64; gc)
+			fmt.Printf("%s (%s on %s/%s; %s)\n", BuildVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
 			return
 		}
 
