@@ -49,6 +49,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 		combinations := getCombinations(img.Variables)
 		for _, configSet := range combinations {
+			log.Info().Str("image", name).Msg("Building")
 			// FIXME: This way of setting variables might collide with overrides
 			// 		  set in "variables" section, I need to change order here.
 			//		  New Map should be created with "config defaults", then
@@ -61,7 +62,6 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			configSet["labels"] = make(map[string]string)
 			maps.Copy(configSet["labels"].(map[string]string), cfg.GlobalLabels)
 			maps.Copy(configSet["labels"].(map[string]string), img.Labels)
-			log.Info().Str("image", name).Msg("Building")
 
 			// skip excluded config sets
 			if isExcluded(configSet, img.Excludes) {
@@ -90,8 +90,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			util.FailOnError(err)
 
 			// collect building image commands
-			builder := cmd.New("docker").
-				Arg("build").
+			builder := cmd.New("docker").Arg("build").
 				Arg("-f", dockerfile).
 				Arg("-t", currentImage).
 				Arg(labelsToArgs(labels)...).
@@ -107,16 +106,14 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			// collect tagging commands to keep order
 			for _, t := range tags {
 				taggedImg := imageName(cfg.Registry, cfg.Prefix, t)
-				tagger := cmd.New("docker").
-					Arg("tag").
+				tagger := cmd.New("docker").Arg("tag").
 					Arg(currentImage).
 					Arg(taggedImg).
 					SetVerbose(flag.Verbose).
 					PreInfo("Tagging " + taggedImg)
 				taggingTasks = taggingTasks.AddTask(tagger)
 
-				pusher := cmd.New("docker").
-					Arg("push").
+				pusher := cmd.New("docker").Arg("push").
 					Arg(taggedImg).
 					PreInfo("Pushing " + taggedImg)
 				if !flag.Verbose { // TODO: check it
@@ -126,8 +123,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			}
 
 			// remove temporary labels
-			dropTempLabel := cmd.New("docker").
-				Arg("image", "rm", "-f").
+			dropTempLabel := cmd.New("docker").Arg("image", "rm", "-f").
 				Arg(currentImage).
 				SetVerbose(flag.Verbose)
 			cleanupTasks = cleanupTasks.AddTask(dropTempLabel)
