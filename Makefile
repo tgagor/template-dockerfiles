@@ -17,3 +17,5 @@ build:
 
 clean:
 	@rm -rfv bin
+	@find example -name '*.Dockerfile' -delete
+	@find tests -name '*.Dockerfile' -delete

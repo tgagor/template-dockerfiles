@@ -49,6 +49,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			// 		  set in "variables" section, I need to change order here.
 			//		  New Map should be created with "config defaults", then
 			//		  current configSet applied over it, and merged with cfg.
+			configSet["image"] = name
 			configSet["tag"] = flag.Tag
 			configSet["registry"] = cfg.Registry
 			configSet["prefix"] = cfg.Prefix
@@ -421,6 +422,7 @@ func imageName(registry string, prefix string, name string) string {
 func ignoredKey(key string) bool {
 	switch key {
 	case
+		"image",
 		"registry",
 		"prefix",
 		"maintainer",
