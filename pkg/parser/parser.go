@@ -410,7 +410,7 @@ func getCombinationString(configSet map[string]interface{}) string {
 
 func getDockerfilePath(dockerFileTemplate string, image string, configSet map[string]interface{}) string {
 	dirname := filepath.Dir(dockerFileTemplate)
-	filename := image + "-" + getCombinationString(configSet) + ".Dockerfile"
+	filename := strings.Join([]string{image, getCombinationString(configSet) + ".Dockerfile"}, "-")
 	return filepath.Join(dirname, sanitizeForFileName(filename))
 }
 
