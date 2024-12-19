@@ -1,6 +1,7 @@
 package config
 
 import (
+	"io"
 	"os"
 
 	"github.com/rs/zerolog/log"
@@ -40,6 +41,10 @@ func Load(filename string) (*Config, error) {
 	}
 
 	// Preserve the order of images
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		log.Error().Err(err).Msg("Error seeking file")
+		return nil, err
+	}
 	var rawYaml map[string]interface{}
 	if err := yaml.NewDecoder(file).Decode(&rawYaml); err != nil {
 		log.Error().Err(err).Msg("Decoding raw YAML " + filename + " failed! Check syntax and try again")
