@@ -8,8 +8,7 @@ Template-Dockerfiles
 A versatile Docker image builder that uses [Go Templates](https://pkg.go.dev/text/template) extended with [Sprig functions](http://masterminds.github.io/sprig/lists.html) to dynamically generate Dockerfiles, validate configurations, and build container images efficiently. The app supports parameterized builds, parallel execution, and customization for streamlined container development.
 
 
-Parameters
-----------
+## **Parameters**
 
 ```bash
 A CLI tool for building Docker images with configurable Dockerfile templates and multi-threaded execution.
@@ -33,8 +32,7 @@ Flags:
   -V, --version         Display the application version and exit
 ```
 
-Installation
-------------
+## **Installation**
 
 Download latest version of file:
 
@@ -219,7 +217,7 @@ repo.local/my-base/jdk:21-alpine3
 ### Optional Enhancements
 1. Use the `prefix` field for consistent image organization.
 2. Add meaningful labels to enhance discoverability and traceability.
-3. Keep in mind that order of variables, determine order of labeling and some labels might overwrite previously created. Use `--dry-run` mode to determine the result.
+3. Keep in mind that order of variables, determine order of labeling and some labels might overwrite previously created.
 
 ### Parallelism
 1. Tool detects number of available CPU and run as many jobs as possible.
@@ -227,8 +225,24 @@ repo.local/my-base/jdk:21-alpine3
 
 ### Debugging
 1. Use `--verbose` flag. It will produce a lot of debug information.
-2. Use `--dry-run` flag just to see what would be produced without actually building anything.
+2. Without `--build` flag, script will just template Dockerfiles, so you can check them for correctness.
+3. Use `--image` to build just single set of images, instead of building them all.
 
 ## **Advanced Tips**
 
-1. **Dynamic Tags**: Use [Go Templates](https://pkg.go.dev/text/template) support by [Sprig functions](http://masterminds.github.io/sprig/lists.html) to create dynamic expressions like `{{ .alpine | splitList "." | first }}` to generate tags or labels dynamically.
+### **Dynamic Tags**
+Use [Go Templates](https://pkg.go.dev/text/template) support by [Sprig functions](http://masterminds.github.io/sprig/lists.html) to create dynamic expressions like `{{ .alpine | splitList "." | first }}` to generate tags or labels dynamically.
+
+### **Dynamic Labels**
+Same approach as for tags applies to labels. You can template them as you whish.
+
+### **Additional Variables**
+
+All the variables available for templating:
+  - `registry` - If provided.
+  - `prefix` - If provided.
+  - `maintainer` - If provided.
+  - `tag` - If `--tag` flag used.
+  - `image` - A key from `images` in the config file, useful for conditions.
+  -	`labels` - Some generated automatically, then from "global scope" (at the top of config file), merged with "per image" labels,
+  - And finally, whatever you define in `variables` blocks.
