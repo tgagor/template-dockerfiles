@@ -52,8 +52,7 @@ When 'docker build' is just not enough. :-)`,
 			log.Debug().Msg("Verbose mode enabled.")
 		}
 		if flags.Push && !flags.Build {
-			log.Error().Msg("'--push' flag makes no sense without '--build'")
-			os.Exit(2)
+			log.Warn().Msg("Attempting to push images without building. Ensure images were built previously, otherwise the push will fail.")
 		}
 		if flags.Image != "" {
 			log.Warn().Str("image", flags.Image).Msg("Limiting build to a single image")
