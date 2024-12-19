@@ -32,9 +32,9 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 		}
 
 		img := cfg.Images[name]
-		log.Debug().Str("image", name).Interface("config", img).Msg("Analyzing")
+		log.Debug().Str("image", name).Interface("config", img).Msg("Parsing")
 		dockerfileTemplate := filepath.Join(workdir, img.Dockerfile)
-		log.Debug().Str("dockerfile template", dockerfileTemplate).Msg("Loading")
+		log.Debug().Str("dockerfile", dockerfileTemplate).Msg("Processing")
 		if img.Excludes != nil {
 			log.Debug().Interface("excludes", img.Excludes).Msg("Excluded config sets")
 		}
@@ -76,18 +76,26 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			labels := getOCILabels(configSet)
 			maps.Copy(labels, collectLabels(configSet))
 
-			dockerfile := getDockerfilePath(dockerfileTemplate, name, configSet)
-			log.Debug().Str("dockerfile", dockerfile).Msg("Generating temporary")
+			var dockerfile string
+			if strings.HasSuffix(dockerfileTemplate, ".tpl") {
+				dockerfile = getDockerfilePath(dockerfileTemplate, name, configSet)
+				log.Debug().Str("dockerfile", dockerfile).Msg("Generating temporary")
 
-			// Cleanup temporary files
-			if flag.Delete {
-				defer removeFile(dockerfile)
+				// Template Dockerfile
+				err := templateFile(dockerfileTemplate, dockerfile, configSet)
+				util.FailOnError(err)
+
+				// Cleanup temporary files
+				if flag.Delete {
+					defer removeFile(dockerfile)
+				}
+			} else {
+				dockerfile = dockerfileTemplate
 			}
 
-			// name required to avoid collisions between images
-			currentImage := name + "-" + getCombinationString(configSet)
-			err := templateFile(dockerfileTemplate, dockerfile, configSet)
-			util.FailOnError(err)
+			// name is required to avoid collisions between images or
+			// when variables are not defined to have actual image name
+			currentImage := strings.Join([]string{name, getCombinationString(configSet)}, "-")
 
 			// collect building image commands
 			builder := cmd.New("docker").Arg("build").

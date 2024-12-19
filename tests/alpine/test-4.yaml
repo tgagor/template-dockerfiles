@@ -1,0 +1,7 @@
+---
+images:
+  test-case-3:
+    # no variables, and plain Dockerfile
+    dockerfile: Dockerfile
+    tags:
+      - whatever
