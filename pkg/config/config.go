@@ -13,6 +13,7 @@ type Config struct {
 	Maintainer   string                 `yaml:"maintainer"`
 	GlobalLabels map[string]string      `yaml:"labels"`
 	Images       map[string]ImageConfig `yaml:"images"`
+	ImageOrder   []string               `yaml:"-"` // To preserve the order of images
 }
 
 type ImageConfig struct {
@@ -37,5 +38,18 @@ func Load(filename string) (*Config, error) {
 		log.Error().Err(err).Msg("Decoding YAML " + filename + " failed! Check syntax and try again")
 		return nil, err
 	}
+
+	// Preserve the order of images
+	var rawYaml map[string]interface{}
+	if err := yaml.NewDecoder(file).Decode(&rawYaml); err != nil {
+		log.Error().Err(err).Msg("Decoding raw YAML " + filename + " failed! Check syntax and try again")
+		return nil, err
+	}
+	if images, ok := rawYaml["images"].(map[string]interface{}); ok {
+		for key := range images {
+			cfg.ImageOrder = append(cfg.ImageOrder, key)
+		}
+	}
+
 	return &cfg, nil
 }

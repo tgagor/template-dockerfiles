@@ -24,10 +24,9 @@ import (
 )
 
 // TODO: add multi-arch building support
-
-// TODO: I should split this method to smaller chunks
 func Run(workdir string, cfg *config.Config, flag config.Flags) error {
-	for name, img := range cfg.Images {
+	for _, name := range cfg.ImageOrder {
+		img := cfg.Images[name]
 		log.Debug().Str("image", name).Interface("config", img).Msg("Analyzing")
 		dockerfileTemplate := filepath.Join(workdir, img.Dockerfile)
 		log.Debug().Str("dockerfile template", dockerfileTemplate).Msg("Loading")
