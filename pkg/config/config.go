@@ -17,6 +17,10 @@ type Config struct {
 	ImageOrder   []string               `yaml:"-"` // To preserve the order of images
 }
 
+type imageLoader struct {
+	Images yaml.Node `yaml:"images"`
+}
+
 type ImageConfig struct {
 	Dockerfile string                   `yaml:"dockerfile"`
 	Variables  map[string][]interface{} `yaml:"variables"`
@@ -34,27 +38,29 @@ func Load(filename string) (*Config, error) {
 	defer file.Close()
 
 	var cfg Config
-	decoder := yaml.NewDecoder(file)
-	if err := decoder.Decode(&cfg); err != nil {
+	if err := yaml.NewDecoder(file).Decode(&cfg); err != nil {
 		log.Error().Err(err).Msg("Decoding YAML " + filename + " failed! Check syntax and try again")
 		return nil, err
 	}
 
-	// Preserve the order of images
+	// Seek to the beginning of the file to read the image order
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
 		log.Error().Err(err).Msg("Error seeking file")
 		return nil, err
 	}
-	var rawYaml map[string]interface{}
-	if err := yaml.NewDecoder(file).Decode(&rawYaml); err != nil {
-		log.Error().Err(err).Msg("Decoding raw YAML " + filename + " failed! Check syntax and try again")
+	// Preserve the order of images
+	var loader imageLoader
+	if err := yaml.NewDecoder(file).Decode(&loader); err != nil {
+		log.Error().Err(err).Msg("Decoding YAML " + filename + " failed! Check syntax and try again")
 		return nil, err
 	}
-	if images, ok := rawYaml["images"].(map[string]interface{}); ok {
-		for key := range images {
-			cfg.ImageOrder = append(cfg.ImageOrder, key)
+	cfg.ImageOrder = []string{}
+	for _, node := range loader.Images.Content {
+		if node.Tag == "!!str" {
+			cfg.ImageOrder = append(cfg.ImageOrder, node.Value)
 		}
 	}
+	log.Debug().Interface("Config", cfg).Msg("Config loaded")
 
 	return &cfg, nil
 }
