@@ -8,20 +8,15 @@
 
 name: Build & Tests
 
-# on:
-#   push:
-#     tags:
-#       - "v*"
 on:
   push:
     paths-ignore:
       - 'README.md'
+      - 'CONTRIBUTING.md'
     branches:
       - main
       - feature/*
       - bugfix/*
-    tags:
-      - 'v*.*.*'
   pull_request:
     branches:
       - main
