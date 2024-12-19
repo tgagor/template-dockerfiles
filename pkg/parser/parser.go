@@ -47,7 +47,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 		pushTasks := runner.New().Threads(flag.Threads).DryRun(!flag.Build)
 		cleanupTasks := runner.New().Threads(flag.Threads).DryRun(!flag.Build)
 
-		combinations := getCombinations(img.Variables)
+		combinations := generateVariableCombinations(img.Variables)
 		for _, configSet := range combinations {
 			log.Info().Str("image", name).Msg("Building")
 			// FIXME: This way of setting variables might collide with overrides
@@ -78,7 +78,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 			var dockerfile string
 			if strings.HasSuffix(dockerfileTemplate, ".tpl") {
-				dockerfile = getDockerfilePath(dockerfileTemplate, name, configSet)
+				dockerfile = generateDockerfilePath(dockerfileTemplate, name, configSet)
 				log.Debug().Str("dockerfile", dockerfile).Msg("Generating temporary")
 
 				// Template Dockerfile
@@ -95,7 +95,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 			// name is required to avoid collisions between images or
 			// when variables are not defined to have actual image name
-			currentImage := strings.Join([]string{name, getCombinationString(configSet)}, "-")
+			currentImage := strings.Join([]string{name, generateCombinationString(configSet)}, "-")
 
 			// collect building image commands
 			builder := cmd.New("docker").Arg("build").
@@ -113,7 +113,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 			// collect tagging commands to keep order
 			for _, t := range tags {
-				taggedImg := imageName(cfg.Registry, cfg.Prefix, t)
+				taggedImg := generateImageName(cfg.Registry, cfg.Prefix, t)
 				tagger := cmd.New("docker").Arg("tag").
 					Arg(currentImage).
 					Arg(taggedImg).
@@ -285,7 +285,7 @@ func collectTags(img config.ImageConfig, configSet map[string]interface{}, name 
 }
 
 // generates all combinations of variables
-func getCombinations(variables map[string][]interface{}) []map[string]interface{} {
+func generateVariableCombinations(variables map[string][]interface{}) []map[string]interface{} {
 	// Extract keys
 	keys := make([]string, 0, len(variables))
 	values := make([][]interface{}, 0, len(variables))
@@ -380,12 +380,6 @@ func templateFile(templateFile string, destinationFile string, args map[string]i
 	}
 	defer f.Close()
 
-	// var w io.Writer = f
-	// if isDebugLevel() {
-	// 	slog.Debug("HUGE DEBUG")
-	// 	w = io.MultiWriter(os.Stdout, f)
-	// }
-
 	// Render templates using variables
 	if err := t.Execute(f, args); err != nil {
 		log.Error().Err(err).Str("file", templateFile).Msg("Failed to template")
@@ -401,10 +395,10 @@ func sanitizeForFileName(input string) string {
 	return reg.ReplaceAllString(input, "_")
 }
 
-func getCombinationString(configSet map[string]interface{}) string {
+func generateCombinationString(configSet map[string]interface{}) string {
 	var parts []string
 	for k, v := range configSet {
-		if !ignoredKey(k) {
+		if !isIgnoredKey(k) {
 			// Apply sanitization to both key and value
 			safeKey := sanitizeForFileName(k)
 			safeValue := sanitizeForFileName(fmt.Sprintf("%v", v))
@@ -415,17 +409,17 @@ func getCombinationString(configSet map[string]interface{}) string {
 	return strings.Join(parts, "-")
 }
 
-func getDockerfilePath(dockerFileTemplate string, image string, configSet map[string]interface{}) string {
+func generateDockerfilePath(dockerFileTemplate string, image string, configSet map[string]interface{}) string {
 	dirname := filepath.Dir(dockerFileTemplate)
-	filename := strings.Join([]string{image, getCombinationString(configSet) + ".Dockerfile"}, "-")
+	filename := strings.Join([]string{image, generateCombinationString(configSet) + ".Dockerfile"}, "-")
 	return filepath.Join(dirname, sanitizeForFileName(filename))
 }
 
-func imageName(registry string, prefix string, name string) string {
+func generateImageName(registry string, prefix string, name string) string {
 	return path.Join(registry, prefix, name)
 }
 
-func ignoredKey(key string) bool {
+func isIgnoredKey(key string) bool {
 	switch key {
 	case
 		"image",
@@ -439,15 +433,15 @@ func ignoredKey(key string) bool {
 	return false
 }
 
-func CopyMapNoTag(m map[string]interface{}) map[string]interface{} {
+func copyMapExcludingIgnoredKeys(m map[string]interface{}) map[string]interface{} {
 	cp := make(map[string]interface{})
 	for k, v := range m {
-		if ignoredKey(k) {
+		if isIgnoredKey(k) {
 			continue
 		}
 		vm, ok := v.(map[string]interface{})
 		if ok {
-			cp[k] = CopyMapNoTag(vm)
+			cp[k] = copyMapExcludingIgnoredKeys(vm)
 		} else {
 			cp[k] = v
 		}
@@ -470,7 +464,7 @@ func excludesToInterfaceMap(input []map[string]string) []map[string]interface{} 
 }
 
 func isExcluded(item map[string]interface{}, excludes []map[string]string) bool {
-	copy := CopyMapNoTag(item)
+	copy := copyMapExcludingIgnoredKeys(item)
 	for _, e := range excludesToInterfaceMap(excludes) {
 		if reflect.DeepEqual(copy, e) {
 			return true
