@@ -24,7 +24,8 @@ Flags:
   -c, --config string   Path to the configuration file (required)
   -d, --delete          Delete templated Dockerfiles after successful building
   -h, --help            help for td
-      --parallel int    Specify the number of threads to use, defaults to number of CPUs (default 20)
+  -i, --image string    Limit the build to a single image
+      --parallel int    Specify the number of threads to use, defaults to number of CPUs (default 8)
   -p, --push            Push Docker images after building
   -s, --squash          Squash images to reduce size (experimental)
   -t, --tag string      Tag to use as the image version
