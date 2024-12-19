@@ -54,6 +54,9 @@ When 'docker build' is just not enough. :-)`,
 			log.Error().Msg("'--push' flag makes no sense without '--build'")
 			os.Exit(2)
 		}
+		if flags.Image != "" {
+			log.Warn().Str("image", flags.Image).Msg("Limiting build to a single image")
+		}
 		if flags.Build {
 			log.Info().Msg("Images will be build after templating.")
 		}
@@ -74,6 +77,15 @@ When 'docker build' is just not enough. :-)`,
 		util.FailOnError(err)
 		log.Trace().Str("config", fmt.Sprintf("%#v", cfg)).Msg("Loaded")
 
+		// Check if the image flag is valid
+		if flags.Image != "" {
+			if _, ok := cfg.Images[flags.Image]; !ok {
+				log.Error().Str("image", flags.Image).Msg("Image not found in configuration")
+				log.Error().Interface("available", cfg.ImageOrder).Msg("Try one of the following:")
+				os.Exit(1)
+			}
+		}
+
 		// Run templating and image building
 		workdir := filepath.Dir(flags.BuildFile)
 		if err := parser.Run(workdir, cfg, flags); err != nil {
@@ -91,6 +103,7 @@ func init() {
 	// rootCmd.MarkPersistentFlagRequired("config")
 
 	cmd.Flags().BoolVarP(&flags.Build, "build", "b", false, "Build Docker images after templating")
+	cmd.Flags().StringVarP(&flags.Image, "image", "i", "", "Limit the build to a single image")
 	cmd.Flags().BoolVarP(&flags.Push, "push", "p", false, "Push Docker images after building")
 	cmd.Flags().BoolVarP(&flags.Delete, "delete", "d", false, "Delete templated Dockerfiles after successful building")
 	cmd.Flags().BoolVarP(&flags.Squash, "squash", "s", false, "Squash images to reduce size (experimental)")

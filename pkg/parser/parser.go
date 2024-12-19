@@ -26,6 +26,11 @@ import (
 // TODO: add multi-arch building support
 func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 	for _, name := range cfg.ImageOrder {
+		// Limit building to a single image
+		if flag.Image != "" && name != flag.Image {
+			continue
+		}
+
 		img := cfg.Images[name]
 		log.Debug().Str("image", name).Interface("config", img).Msg("Analyzing")
 		dockerfileTemplate := filepath.Join(workdir, img.Dockerfile)
@@ -57,13 +62,11 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			maps.Copy(configSet["labels"].(map[string]string), cfg.GlobalLabels)
 			maps.Copy(configSet["labels"].(map[string]string), img.Labels)
 			log.Info().Str("image", name).Msg("Building")
-			// if(flag.Verbose) {
-			// 	fmt.Println("config set" + util.PrettyPrintMap(configSet))
-			// }
 
+			// skip excluded config sets
 			if isExcluded(configSet, img.Excludes) {
 				log.Debug().Interface("config set", configSet).Interface("excludes", img.Excludes).Msg("Skipping excluded")
-				continue // break here, this set is excluded
+				continue
 			}
 
 			// Collect all required data
