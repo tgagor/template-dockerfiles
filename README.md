@@ -47,6 +47,63 @@ go install github.com/tgagor/template-dockerfiles/cmd/td@latest
 ```
 Ensure you have `GOPATH`, in your `PATH`.
 
+
+## **Example Configuration**
+
+### Complete Examples
+
+For complete examples of configuration check [example](./example/) directory.
+
+### Configuration File
+
+Start defining your build configuration file. It's a playbook by which your Docker image templates will be generated and build:
+
+```yaml
+registry: repo.local
+prefix: my-base
+maintainer: Awesome Developer <awesome@mail>
+
+images:
+  jdk:
+    dockerfile: jdk/Dockerfile.tpl
+    variables:
+      alpine:
+        - "3.19"
+        - "3.20"
+      java:
+        - 11
+        - 17
+        - 21
+    tags:
+      - jdk:{{ .tag }}-{{ .java }}-alpine{{ .alpine }}
+      - jdk:{{ .java }}-alpine{{ .alpine | splitList "." | first }}
+```
+
+Call build like:
+
+```bash
+td --config build.yaml --tag v1.2.3 --build --delete
+```
+
+Which will produce 2x3 -> 6 images, with 12 labels:
+
+```bash
+repo.local/my-base/jdk:v1.2.3-11-alpine3.19
+repo.local/my-base/jdk:11-alpine3
+repo.local/my-base/jdk:v1.2.3-17-alpine3.19
+repo.local/my-base/jdk:17-alpine3
+repo.local/my-base/jdk:v1.2.3-21-alpine3.19
+repo.local/my-base/jdk:21-alpine3
+repo.local/my-base/jdk:v1.2.3-11-alpine3.20
+repo.local/my-base/jdk:11-alpine3
+repo.local/my-base/jdk:v1.2.3-17-alpine3.20
+repo.local/my-base/jdk:17-alpine3
+repo.local/my-base/jdk:v1.2.3-21-alpine3.20
+repo.local/my-base/jdk:21-alpine3
+```
+
+**Order of values under `variables` block is used to determine the order of labels creation.**
+
 ## **Configuration Format**
 
 This file format defines the configuration for dynamically generating Docker images using Jinja2 templates. It specifies global settings, image definitions, and build parameters.
@@ -151,63 +208,6 @@ Each image is identified by a key (e.g., `base`, `jdk`, `jre`) and contains the 
 - **Notes**:
   - I recommend to follow [OCI Label Schema](https://github.com/opencontainers/image-spec/blob/main/annotations.md), app will add some of them automatically.
   - Labels can be templated and they will override global labels of same name.
-
-## **Example Configuration**
-
-### Complete Examples
-
-For complete examples of configuration check [example](./example/) directory.
-
-### Configuration File
-
-Start defining your build configuration file. It's a playbook by which your Docker image templates will be generated and build:
-
-```yaml
-registry: repo.local
-prefix: my-base
-maintainer: Awesome Developer <awesome@mail>
-
-images:
-  jdk:
-    dockerfile: jdk/Dockerfile.tpl
-    variables:
-      alpine:
-        - "3.19"
-        - "3.20"
-      java:
-        - 11
-        - 17
-        - 21
-    tags:
-      - jdk:{{ .tag }}-{{ .java }}-alpine{{ .alpine }}
-      - jdk:{{ .java }}-alpine{{ .alpine | splitList "." | first }}
-```
-
-Call build like:
-
-```bash
-td --config build.yaml --tag v1.2.3 --build --delete
-```
-
-Which will produce 2x3 -> 6 images, with 12 labels:
-
-```bash
-repo.local/my-base/jdk:v1.2.3-11-alpine3.19
-repo.local/my-base/jdk:11-alpine3
-repo.local/my-base/jdk:v1.2.3-17-alpine3.19
-repo.local/my-base/jdk:17-alpine3
-repo.local/my-base/jdk:v1.2.3-21-alpine3.19
-repo.local/my-base/jdk:21-alpine3
-repo.local/my-base/jdk:v1.2.3-11-alpine3.20
-repo.local/my-base/jdk:11-alpine3
-repo.local/my-base/jdk:v1.2.3-17-alpine3.20
-repo.local/my-base/jdk:17-alpine3
-repo.local/my-base/jdk:v1.2.3-21-alpine3.20
-repo.local/my-base/jdk:21-alpine3
-```
-
-**Order of values under `variables` block is used to determine the order of labels creation.**
-
 
 ## **Validation and Recommendations**
 
