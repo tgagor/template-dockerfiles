@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"strings"
@@ -53,6 +54,9 @@ func (c Cmd) PostInfo(msg string) Cmd {
 }
 
 func (c Cmd) Run(ctx context.Context) (string, error) {
+	if c.cmd == "" {
+		return "", errors.New("command not set")
+	}
 	if c.preText != "" {
 		log.Info().Msg(c.preText)
 	}
