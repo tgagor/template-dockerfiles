@@ -34,6 +34,8 @@ Ideas and wishlist
         - `buildx`
     - depending on builder, some feature might not be available or not (for ex. squashing)
 
+    Partially done. Interface is there and basic `buildx` added side by side to default `docker` builder.
+
 5.  **Feature**: Add support for multi-arch image builds
 
     Easiest to achieve with `buildx` builder. Could be a "killer" feature as with multiple platforms you have those many corner cases, small package names differences, different URLs for dependency downloads, so exactly what I try to improve with my tool.
@@ -83,12 +85,3 @@ Ideas and wishlist
 
     To improve visibility of tasks in the background.
     Hint: https://github.com/schollz/progressbar
-
-11. **Refactor**: The chaining in Runner and Cmd modules returns full objects, when it probably should return references. Maybe fixing it, would allow me to simplify calls like:
-```
-b.tagTasks = b.tagTasks.AddTask(tagger)
-```
-to just
-```
-b.tagTasks.AddTask(tagger)
-```
