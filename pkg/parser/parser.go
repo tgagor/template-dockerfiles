@@ -50,6 +50,8 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			buildEngine = &builder.DockerBuilder{}
 		}
 
+		err := buildEngine.Init()
+		util.FailOnError(err, "Failed to initialize builder.")
 		buildEngine.SetThreads(flag.Threads)
 		buildEngine.SetDryRun(!flag.Build)
 
@@ -118,7 +120,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 				buildEngine.Push(taggedImg, flag.Verbose)
 			}
 
-			// remove temporary labels
+			// remove temporary tags
 			buildEngine.Remove(currentImage, flag.Verbose)
 		}
 
@@ -144,6 +146,9 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			util.FailOnError(err, "Pushing images failed, check error above. Exiting.")
 		}
 
+		// Shutdown the builder
+		err = buildEngine.Shutdown()
+		util.FailOnError(err, "Failed to shutdown builder.")
 		fmt.Println("")
 
 	}

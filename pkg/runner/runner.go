@@ -10,20 +10,20 @@ import (
 )
 
 type Runner struct {
-	tasks   []cmd.Cmd
+	tasks   []*cmd.Cmd
 	threads int
 	dryRun  bool
 }
 
-func New() Runner {
-	return Runner{
-		tasks:   []cmd.Cmd{},
+func New() *Runner {
+	return &Runner{
+		tasks:   []*cmd.Cmd{},
 		dryRun:  false,
 		threads: 1,
 	}
 }
 
-func (r Runner) Contains(task cmd.Cmd) bool {
+func (r *Runner) Contains(task *cmd.Cmd) bool {
 	for _, t := range r.tasks {
 		if t.Equal(task) {
 			return true
@@ -32,7 +32,16 @@ func (r Runner) Contains(task cmd.Cmd) bool {
 	return false
 }
 
-func (r Runner) AddTask(task ...cmd.Cmd) Runner {
+func (r *Runner) CountTasks() int {
+	return len(r.tasks)
+}
+
+func (r *Runner) AddTask(task ...*cmd.Cmd) *Runner {
+	r.tasks = append(r.tasks, task...)
+	return r
+}
+
+func (r *Runner) AddUniq(task ...*cmd.Cmd) *Runner {
 	// add only uniq calls
 	for _, t := range task {
 		if !r.Contains(t) {
@@ -42,12 +51,12 @@ func (r Runner) AddTask(task ...cmd.Cmd) Runner {
 	return r
 }
 
-func (r Runner) DryRun(flag bool) Runner {
+func (r *Runner) DryRun(flag bool) *Runner {
 	r.dryRun = flag
 	return r
 }
 
-func (r Runner) Threads(threads int) Runner {
+func (r *Runner) Threads(threads int) *Runner {
 	r.threads = threads
 	return r
 }
@@ -65,13 +74,13 @@ func (r Runner) Threads(threads int) Runner {
 // 	return nil
 // }
 
-func (r Runner) Run() error {
+func (r *Runner) Run() error {
 	// Create a context for cancellation
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// Workers get tasks from this channel
-	tasks := make(chan cmd.Cmd)
+	tasks := make(chan *cmd.Cmd)
 
 	// Feed the workers with tasks
 	go func() {

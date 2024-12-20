@@ -10,6 +10,7 @@ type Builder interface {
 	Run(stage Stage) error
 	SetThreads(threads int)
 	SetDryRun(dryRun bool)
+	Shutdown() error
 }
 
 // func DefaultRun(b Builder, stage Stage) error {

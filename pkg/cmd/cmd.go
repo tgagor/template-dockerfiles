@@ -21,8 +21,8 @@ type Cmd struct {
 	output   string
 }
 
-func New(c string) Cmd {
-	return Cmd{
+func New(c string) *Cmd {
+	return &Cmd{
 		cmd:      c,
 		verbose:  false,
 		preText:  "",
@@ -30,31 +30,31 @@ func New(c string) Cmd {
 	}
 }
 
-func (c Cmd) Equal(cmd Cmd) bool {
+func (c *Cmd) Equal(cmd *Cmd) bool {
 	return c.String() == cmd.String()
 }
 
-func (c Cmd) Arg(args ...string) Cmd {
+func (c *Cmd) Arg(args ...string) *Cmd {
 	c.args = append(c.args, args...)
 	return c
 }
 
-func (c Cmd) SetVerbose(verbosity bool) Cmd {
+func (c *Cmd) SetVerbose(verbosity bool) *Cmd {
 	c.verbose = verbosity
 	return c
 }
 
-func (c Cmd) PreInfo(msg string) Cmd {
+func (c *Cmd) PreInfo(msg string) *Cmd {
 	c.preText = msg
 	return c
 }
 
-func (c Cmd) PostInfo(msg string) Cmd {
+func (c *Cmd) PostInfo(msg string) *Cmd {
 	c.postText = msg
 	return c
 }
 
-func (c Cmd) Run(ctx context.Context) (string, error) {
+func (c *Cmd) Run(ctx context.Context) (string, error) {
 	if c.cmd == "" {
 		return "", errors.New("command not set")
 	}
@@ -104,11 +104,11 @@ func (c Cmd) Run(ctx context.Context) (string, error) {
 	return c.output, nil
 }
 
-func (c Cmd) String() string {
+func (c *Cmd) String() string {
 	return strings.Trim(fmt.Sprintf("%s %s", c.cmd, strings.Join(c.args, " ")), " ")
 }
 
-func (c Cmd) Output() (string, error) {
+func (c *Cmd) Output() (string, error) {
 	cmd := exec.Command(c.cmd, c.args...)
 
 	// pipe the commands output to the applications
