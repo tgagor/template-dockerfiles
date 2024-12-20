@@ -3,6 +3,8 @@ package builder
 import (
 	"fmt"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/tgagor/template-dockerfiles/pkg/cmd"
 	"github.com/tgagor/template-dockerfiles/pkg/runner"
 )
@@ -69,14 +71,19 @@ func (b *DockerBuilder) Remove(imageName string, verbose bool) {
 }
 
 func (b *DockerBuilder) Run(stage Stage) error {
+	log.Debug().Str("stage", stage.String()).Msg("Running stage: ")
 	switch stage {
 	case Build:
+		log.Debug().Msg("Running build stage")
 		return b.buildTasks.Run()
 	case Tag:
+		log.Debug().Msg("Running tagging stage")
 		return b.tagTasks.Run()
 	case Push:
+		log.Debug().Msg("Running push stage")
 		return b.pushTasks.Run()
 	case Remove:
+		log.Debug().Msg("Running cleanup stage")
 		return b.cleanupTasks.Run()
 	default:
 		return fmt.Errorf("unknown stage: %s", stage)

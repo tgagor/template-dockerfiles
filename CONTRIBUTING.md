@@ -79,7 +79,16 @@ Ideas and wishlist
 
     To allow defining where temporary template files or tar packages should be placed, as current dir or Dockerfile's dir might not be preferred in some situations (for ex. RO).
 
-10. **feature**: Add `--progress` flag
+10. **Feature**: Add `--progress` flag
 
     To improve visibility of tasks in the background.
     Hint: https://github.com/schollz/progressbar
+
+11. **Refactor**: The chaining in Runner and Cmd modules returns full objects, when it probably should return references. Maybe fixing it, would allow me to simplify calls like:
+```
+b.tagTasks = b.tagTasks.AddTask(tagger)
+```
+to just
+```
+b.tagTasks.AddTask(tagger)
+```
