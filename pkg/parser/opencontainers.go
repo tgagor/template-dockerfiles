@@ -11,7 +11,7 @@ import (
 
 // Follow:
 // https://github.com/opencontainers/image-spec/blob/main/annotations.md
-func getOCILabels(cfg map[string]interface{}) map[string]string {
+func collectOCILabels(cfg map[string]interface{}) map[string]string {
 	labels := map[string]string{}
 
 	if cfg["maintainer"] != "" {
@@ -45,15 +45,15 @@ func getOCILabels(cfg map[string]interface{}) map[string]string {
 	return labels
 }
 
-func labelsToArgs(labels map[string]string) []string {
-	args := []string{}
+// func labelsToArgs(labels map[string]string) []string {
+// 	args := []string{}
 
-	for k, v := range labels {
-		args = append(args, "--label", fmt.Sprintf("%s=%s", k, v))
-	}
+// 	for k, v := range labels {
+// 		args = append(args, "--label", fmt.Sprintf("%s=%s", k, v))
+// 	}
 
-	return args
-}
+// 	return args
+// }
 
 func readGitRepo(path string) (originURL string, commitHex string, branchName string, err error) {
 	// Open the local git repository

@@ -12,4 +12,5 @@ type Flags struct {
 	Threads      int
 	Verbose      bool
 	Image        string
+	Engine       string
 }

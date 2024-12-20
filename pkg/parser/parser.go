@@ -14,6 +14,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	"github.com/tgagor/template-dockerfiles/pkg/builder"
 	"github.com/tgagor/template-dockerfiles/pkg/cmd"
 	"github.com/tgagor/template-dockerfiles/pkg/config"
 	"github.com/tgagor/template-dockerfiles/pkg/runner"
@@ -37,12 +38,20 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 		}
 
 		var toSquash []string
+		var buildEngine builder.Builder
 
-		buildTasks := runner.New().Threads(flag.Threads).DryRun(!flag.Build)
-		// labelling have to happen in order, so no parallelism
-		taggingTasks := runner.New().DryRun(!flag.Build)
-		pushTasks := runner.New().Threads(flag.Threads).DryRun(!flag.Build)
-		cleanupTasks := runner.New().Threads(flag.Threads).DryRun(!flag.Build)
+		// Choose the build engine based on the flag
+		switch flag.Engine {
+		case "buildx":
+			buildEngine = &builder.BuildxBuilder{}
+		// case "kaniko":
+		// 	buildEngine = &builder.KanikoBuilder{}
+		default:
+			buildEngine = &builder.DockerBuilder{}
+		}
+
+		buildEngine.SetThreads(flag.Threads)
+		buildEngine.SetDryRun(!flag.Build)
 
 		combinations := generateVariableCombinations(img.Variables)
 		for _, configSet := range combinations {
@@ -70,7 +79,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			tags := collectTags(img, configSet, name)
 
 			// Collect labels, starting with global labels, then oci, then per image
-			labels := getOCILabels(configSet)
+			labels := collectOCILabels(configSet)
 			maps.Copy(labels, collectLabels(configSet))
 
 			var dockerfile string
@@ -95,13 +104,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			currentImage := strings.Join([]string{name, generateCombinationString(configSet)}, "-")
 
 			// collect building image commands
-			builder := cmd.New("docker").Arg("build").
-				Arg("-f", dockerfile).
-				Arg("-t", currentImage).
-				Arg(labelsToArgs(labels)...).
-				Arg(filepath.Dir(dockerfileTemplate)).
-				SetVerbose(flag.Verbose)
-			buildTasks = buildTasks.AddTask(builder)
+			buildEngine.Build(dockerfile, currentImage, labels, filepath.Dir(dockerfileTemplate), flag.Verbose)
 
 			// squash if demanded
 			if flag.Squash {
@@ -111,31 +114,16 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			// collect tagging commands to keep order
 			for _, t := range tags {
 				taggedImg := generateImageName(cfg.Registry, cfg.Prefix, t)
-				tagger := cmd.New("docker").Arg("tag").
-					Arg(currentImage).
-					Arg(taggedImg).
-					SetVerbose(flag.Verbose).
-					PreInfo("Tagging " + taggedImg)
-				taggingTasks = taggingTasks.AddTask(tagger)
-
-				pusher := cmd.New("docker").Arg("push").
-					Arg(taggedImg).
-					PreInfo("Pushing " + taggedImg)
-				if !flag.Verbose { // TODO: check it
-					pusher = pusher.Arg("--quiet")
-				}
-				pushTasks = pushTasks.AddTask(pusher)
+				buildEngine.Tag(currentImage, taggedImg, flag.Verbose)
+				buildEngine.Push(taggedImg, flag.Verbose)
 			}
 
 			// remove temporary labels
-			dropTempLabel := cmd.New("docker").Arg("image", "rm", "-f").
-				Arg(currentImage).
-				SetVerbose(flag.Verbose)
-			cleanupTasks = cleanupTasks.AddTask(dropTempLabel)
+			buildEngine.Remove(currentImage, flag.Verbose)
 		}
 
 		if flag.Build {
-			err := buildTasks.Run()
+			err := buildEngine.Run(builder.Build)
 			util.FailOnError(err, "Building failed with error, check error above. Exiting.")
 		}
 
@@ -146,13 +134,13 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 		// continue classical build
 		if flag.Build {
-			err := taggingTasks.Run()
+			err := buildEngine.Run(builder.Tag)
 			util.FailOnError(err, "Tagging failed with error, check error above. Exiting.")
-			err = cleanupTasks.Run()
+			err = buildEngine.Run(builder.Remove)
 			util.FailOnError(err, "Dropping temporary images failed. Exiting.")
 		}
 		if flag.Push {
-			err := pushTasks.Run()
+			err := buildEngine.Run(builder.Push)
 			util.FailOnError(err, "Pushing images failed, check error above. Exiting.")
 		}
 

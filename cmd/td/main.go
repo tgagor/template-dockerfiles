@@ -104,6 +104,8 @@ func init() {
 
 	cmd.Flags().BoolVarP(&flags.Build, "build", "b", false, "Build Docker images after templating")
 	cmd.Flags().StringVarP(&flags.Image, "image", "i", "", "Limit the build to a single image")
+	// FIXME: add more engines, add check for correctness, podman, buildx, kaniko)")
+	cmd.Flags().StringVarP(&flags.Engine, "engine", "e", "docker", "Select the container engine to use (docker, buiildx)")
 	cmd.Flags().BoolVarP(&flags.Push, "push", "p", false, "Push Docker images after building")
 	cmd.Flags().BoolVarP(&flags.Delete, "delete", "d", false, "Delete templated Dockerfiles after successful building")
 	cmd.Flags().BoolVarP(&flags.Squash, "squash", "s", false, "Squash images to reduce size (experimental)")
