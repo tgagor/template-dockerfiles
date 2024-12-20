@@ -101,7 +101,8 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 			// name is required to avoid collisions between images or
 			// when variables are not defined to have actual image name
-			currentImage := strings.Join([]string{name, generateCombinationString(configSet)}, "-")
+			currentImage := strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-")
+			log.Debug().Str("image", currentImage).Msg("Building")
 
 			// collect building image commands
 			buildEngine.Build(dockerfile, currentImage, labels, filepath.Dir(dockerfileTemplate), flag.Verbose)
@@ -360,12 +361,12 @@ func generateCombinationString(configSet map[string]interface{}) string {
 		}
 	}
 	sort.Strings(parts)
-	return strings.Join(parts, "-")
+	return strings.Trim(strings.Join(parts, "-"), "-")
 }
 
 func generateDockerfilePath(dockerFileTemplate string, image string, configSet map[string]interface{}) string {
 	dirname := filepath.Dir(dockerFileTemplate)
-	filename := strings.Join([]string{image, generateCombinationString(configSet) + ".Dockerfile"}, "-")
+	filename := strings.Trim(fmt.Sprintf("%s-%s.Dockerfile", image, generateCombinationString(configSet)), "-")
 	return filepath.Join(dirname, sanitizeForFileName(filename))
 }
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -104,7 +105,7 @@ func (c Cmd) Run(ctx context.Context) (string, error) {
 }
 
 func (c Cmd) String() string {
-	return c.cmd + " " + strings.Join(c.args, " ")
+	return strings.Trim(fmt.Sprintf("%s %s", c.cmd, strings.Join(c.args, " ")), " ")
 }
 
 func (c Cmd) Output() (string, error) {
