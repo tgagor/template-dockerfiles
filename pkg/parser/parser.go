@@ -223,11 +223,11 @@ func squashImages(flag config.Flags, toSquash []string) {
 				importIt = importIt.Arg("--change", "WORKDIR "+item.Config.WorkingDir)
 			}
 		}
-		importIt = importIt.Arg(tmpTarFile).Arg(sanitizedImg).
+		importIt = importIt.Arg(tmpTarFile).Arg(img).
 			SetVerbose(flag.Verbose)
 		importTarsToImgs = importTarsToImgs.AddTask(importIt)
 
-		squashed = append(squashed, sanitizedImg)
+		squashed = append(squashed, img)
 		defer removeFile(tmpTarFile)
 	}
 
@@ -348,6 +348,8 @@ func templateLabels(labelTemplates map[string]string, configSet map[string]inter
 
 func sanitizeForFileName(input string) string {
 	// Replace any character that is not a letter, number, or safe symbol (-, _) with an underscore
+	// FIXME: This can actually result in collisions if someones uses a lot of symbols in variables
+	// 		  But I didn't face it yet, maybe it's not a problem at all
 	reg := regexp.MustCompile(`[^a-zA-Z0-9-_\.]+`)
 	return reg.ReplaceAllString(input, "_")
 }
