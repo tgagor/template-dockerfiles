@@ -1,0 +1,12 @@
+---
+images:
+  test-case-5:
+    # white characters at beginning and end of labels and tags should be trimmed
+    dockerfile: Dockerfile.tpl
+    variables:
+      alpine:
+        - 3
+    labels:
+      "ugly   ": "    label"
+    tags:
+      - "    whatever    "

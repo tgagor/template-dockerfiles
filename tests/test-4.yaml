@@ -1,6 +1,6 @@
 ---
 images:
-  test-case-3:
+  test-case-4:
     # no variables, and plain Dockerfile
     dockerfile: Dockerfile
     tags:
