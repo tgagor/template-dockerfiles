@@ -1,8 +1,9 @@
-package parser
+package builder
 
 import (
 	"encoding/json"
 	"os"
+	"regexp"
 
 	"github.com/rs/zerolog/log"
 	"github.com/tgagor/template-dockerfiles/pkg/cmd"
@@ -10,6 +11,8 @@ import (
 )
 
 type DockerInspect []struct {
+	Id     string `json:"Id"`
+	Size   uint64 `json:"Size"`
 	Config struct {
 		Env        []string            `json:"Env"`
 		Cmd        []string            `json:"Cmd"`
@@ -18,10 +21,9 @@ type DockerInspect []struct {
 		Entrypoint []string            `json:"Entrypoint"`
 		Labels     map[string]string   `json:"Labels"`
 	} `json:"Config"`
-	Size uint64
 }
 
-func inspectImg(image string) (DockerInspect, error) {
+func inspectImage(image string) (DockerInspect, error) {
 	out, err := cmd.New("docker").Arg("inspect").Arg("--format").Arg("json").Arg(image).Output()
 	util.FailOnError(err)
 
@@ -38,7 +40,18 @@ func inspectImg(image string) (DockerInspect, error) {
 	return inspect, nil
 }
 
-// func imgSize(image string) string {
-// 	out, err := cmd.New("docker").Arg("inspect").Arg("--format").Arg("json").Arg(image).Output()
-// 	util.FailOnError(err)
-// }
+func sanitizeForFileName(input string) string {
+	// Replace any character that is not a letter, number, or safe symbol (-, _) with an underscore
+	// FIXME: This can actually result in collisions if someones uses a lot of symbols in variables
+	// 		  But I didn't face it yet, maybe it's not a problem at all
+	reg := regexp.MustCompile(`[^a-zA-Z0-9-_\.]+`)
+	return reg.ReplaceAllString(input, "_")
+}
+
+func labelsToArgs(labels map[string]string) []string {
+	args := []string{}
+	for k, v := range labels {
+		args = append(args, "--label", k+"="+v)
+	}
+	return args
+}

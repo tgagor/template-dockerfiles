@@ -1,15 +1,14 @@
 package builder
 
 import (
-	"fmt"
-
+	"github.com/rs/zerolog/log"
 	"github.com/tgagor/template-dockerfiles/pkg/cmd"
 	"github.com/tgagor/template-dockerfiles/pkg/runner"
 )
 
 type BuildxBuilder struct {
 	buildTasks   *runner.Runner
-	tagTasks     *runner.Runner
+	taggingTasks *runner.Runner
 	pushTasks    *runner.Runner
 	cleanupTasks *runner.Runner
 }
@@ -20,6 +19,12 @@ func (b *BuildxBuilder) Init() error {
 	//   --name multi-platform-builder \
 	//   --driver docker-container \
 	//   --use
+	b.buildTasks = runner.New()
+	b.taggingTasks = runner.New()
+	b.pushTasks = runner.New()
+	b.cleanupTasks = runner.New()
+
+	log.Info().Str("engine", "buildx").Msg("Initializing")
 	return nil
 }
 
@@ -32,7 +37,7 @@ func (b *BuildxBuilder) SetThreads(threads int) {
 
 func (b *BuildxBuilder) SetDryRun(dryRun bool) {
 	b.buildTasks.DryRun(dryRun)
-	b.tagTasks.DryRun(dryRun)
+	b.taggingTasks.DryRun(dryRun)
 	b.pushTasks.DryRun(dryRun)
 	b.cleanupTasks.DryRun(dryRun)
 }
@@ -47,13 +52,15 @@ func (b *BuildxBuilder) Build(dockerfile, imageName string, labels map[string]st
 	b.buildTasks.AddTask(builder)
 }
 
+func (b *BuildxBuilder) Squash(imageName string, verbose bool) {}
+
 func (b *BuildxBuilder) Tag(imageName, taggedImage string, verbose bool) {
 	tagger := cmd.New("docker").Arg("tag").
 		Arg(imageName).
 		Arg(taggedImage).
 		SetVerbose(verbose).
 		PreInfo("Tagging " + taggedImage)
-	b.tagTasks.AddUniq(tagger)
+	b.taggingTasks.AddUniq(tagger)
 }
 
 func (b *BuildxBuilder) Push(taggedImage string, verbose bool) {
@@ -72,29 +79,23 @@ func (b *BuildxBuilder) Remove(imageName string, verbose bool) {
 	b.cleanupTasks.AddTask(remover)
 }
 
-func (b *BuildxBuilder) Run(stage Stage) error {
-	switch stage {
-	case Build:
-		return b.buildTasks.Run()
-	case Tag:
-		return b.tagTasks.Run()
-	case Push:
-		return b.pushTasks.Run()
-	case Remove:
-		return b.cleanupTasks.Run()
-	default:
-		return fmt.Errorf("unknown stage: %s", stage)
-	}
+func (b *BuildxBuilder) RunBuilding() error {
+	return b.buildTasks.Run()
+}
+func (b *BuildxBuilder) RunSquashing() error {
+	log.Warn().Msg("Squash is not supported for buildx")
+	return nil
+}
+func (b *BuildxBuilder) RunTagging() error {
+	return b.taggingTasks.Run()
+}
+func (b *BuildxBuilder) RunPushing() error {
+	return b.pushTasks.Run()
+}
+func (b *BuildxBuilder) RunCleanup() error {
+	return b.cleanupTasks.Run()
 }
 
 func (b *BuildxBuilder) Shutdown() error {
 	return nil
 }
-
-// func labelsToArgs(labels map[string]string) []string {
-// 	args := []string{}
-// 	for k, v := range labels {
-// 		args = append(args, "--label", k+"="+v)
-// 	}
-// 	return args
-// }
