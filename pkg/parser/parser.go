@@ -320,7 +320,7 @@ func templateTags(tagTemplates []string, configSet map[string]interface{}) ([]st
 		if err != nil {
 			return nil, err
 		}
-		tags = append(tags, templated)
+		tags = append(tags, strings.Trim(templated, " \n"))
 	}
 
 	return tags, nil
@@ -338,6 +338,8 @@ func templateLabels(labelTemplates map[string]string, configSet map[string]inter
 		if err != nil {
 			return nil, err
 		}
+		templatedLabel = strings.Trim(templatedLabel, " \n")
+		templatedValue = strings.Trim(templatedValue, " \n")
 		labels[templatedLabel] = templatedValue
 	}
 
