@@ -102,7 +102,6 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			// name is required to avoid collisions between images or
 			// when variables are not defined to have actual image name
 			currentImage := strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-")
-			log.Debug().Str("image", currentImage).Msg("Building")
 
 			// collect building image commands
 			buildEngine.Build(dockerfile, currentImage, labels, filepath.Dir(dockerfileTemplate), flag.Verbose)

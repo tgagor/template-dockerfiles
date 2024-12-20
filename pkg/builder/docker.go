@@ -11,7 +11,7 @@ import (
 
 type DockerBuilder struct {
 	buildTasks   runner.Runner
-	tagTasks     runner.Runner
+	taggingTasks runner.Runner
 	pushTasks    runner.Runner
 	cleanupTasks runner.Runner
 }
@@ -29,7 +29,7 @@ func (b *DockerBuilder) SetThreads(threads int) {
 
 func (b *DockerBuilder) SetDryRun(dryRun bool) {
 	b.buildTasks = b.buildTasks.DryRun(dryRun)
-	b.tagTasks = b.tagTasks.DryRun(dryRun)
+	b.taggingTasks = b.taggingTasks.DryRun(dryRun)
 	b.pushTasks = b.pushTasks.DryRun(dryRun)
 	b.cleanupTasks = b.cleanupTasks.DryRun(dryRun)
 }
@@ -40,6 +40,7 @@ func (b *DockerBuilder) Build(dockerfile, imageName string, labels map[string]st
 		Arg("-t", imageName).
 		Arg(labelsToArgs(labels)...).
 		Arg(contextDir).
+		PreInfo("Building " + imageName).
 		SetVerbose(verbose)
 	b.buildTasks = b.buildTasks.AddTask(builder)
 }
@@ -50,7 +51,7 @@ func (b *DockerBuilder) Tag(imageName, taggedImage string, verbose bool) {
 		Arg(taggedImage).
 		SetVerbose(verbose).
 		PreInfo("Tagging " + taggedImage)
-	b.tagTasks = b.tagTasks.AddTask(tagger)
+	b.taggingTasks = b.taggingTasks.AddTask(tagger)
 }
 
 func (b *DockerBuilder) Push(taggedImage string, verbose bool) {
@@ -78,7 +79,7 @@ func (b *DockerBuilder) Run(stage Stage) error {
 		return b.buildTasks.Run()
 	case Tag:
 		log.Debug().Msg("Running tagging stage")
-		return b.tagTasks.Run()
+		return b.taggingTasks.Run()
 	case Push:
 		log.Debug().Msg("Running push stage")
 		return b.pushTasks.Run()
