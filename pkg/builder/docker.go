@@ -74,11 +74,12 @@ func (b *DockerBuilder) Build(dockerfile, imageName string, labels map[string]st
 	b.buildTasks.AddTask(builder)
 }
 
+// TODO: should I add a flag for original image removal?
 func (b *DockerBuilder) Squash(imageName string, verbose bool) {
-	sanitizedImg := sanitizeForFileName(imageName)
+	containerName := "run-" + sanitizeForFileName(imageName)
 
 	runItFirst := cmd.New("docker").Arg("run").
-		Arg("--name", sanitizedImg).
+		Arg("--name", containerName).
 		Arg(imageName).
 		Arg("true").
 		SetVerbose(verbose)
@@ -89,14 +90,14 @@ func (b *DockerBuilder) Squash(imageName string, verbose bool) {
 	log.Debug().Interface("data", imgMetadata).Msg("Docker inspect result")
 	b.imageSizesBefore[imageName] = imgMetadata[0].Size
 
-	tmpTarFile := sanitizedImg + ".tar"
+	tmpTarFile := containerName + ".tar"
 	exportIt := cmd.New("docker").Arg("export").
-		Arg(sanitizedImg).
+		Arg(containerName).
 		Arg("-o", tmpTarFile).
-		PreInfo(fmt.Sprintf("Squashing %s of size: %s", imageName, util.ByteCountIEC(b.imageSizesBefore[imageName]))).
+		PreInfo(fmt.Sprintf("Squashing %s", imageName)).
 		SetVerbose(verbose)
 	b.squashExportImages.AddTask(exportIt)
-	b.cleanupTasks.AddTask(cmd.New("docker").Arg("rm").Arg("-f").Arg(sanitizedImg))
+	b.cleanupTasks.AddTask(cmd.New("docker").Arg("rm").Arg("-f").Arg(containerName))
 
 	importIt := cmd.New("docker").Arg("import")
 	for _, item := range imgMetadata {
@@ -188,17 +189,15 @@ func (b *DockerBuilder) RunSquashing() error {
 		return err
 	}
 
-	// cmd.New("docker").Arg("image", "ls").SetVerbose(true).Run(context.TODO())
-
 	for imageName, sizeBefore := range b.imageSizesBefore {
+		log.Debug().Str("image", imageName).Uint64("sizeBefore", sizeBefore).Msg("Squashing")
 		imgMetadata, err := inspectImage(imageName)
 		if err != nil {
 			return err
 		}
-		log.Debug().Interface("data", imgMetadata).Msg("Docker inspect result")
 		sizeAfter := imgMetadata[0].Size
 		percentage := float64(sizeAfter)*100/float64(sizeBefore) - 100
-		log.Info().Msg(fmt.Sprintf("Squashed %s to size: %s (%.0f%%)", imageName, util.ByteCountIEC(imgMetadata[0].Size), percentage))
+		log.Info().Str("image", imageName).Str("was", util.ByteCountIEC(sizeBefore)).Str("is", util.ByteCountIEC(sizeAfter)).Str("reduction", fmt.Sprintf("%.1f%%", percentage)).Msg("Squashed")
 	}
 
 	return nil

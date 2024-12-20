@@ -26,6 +26,6 @@ func ByteCountIEC(b uint64) string {
 		div *= unit
 		exp++
 	}
-	return fmt.Sprintf("%.f %ciB",
+	return fmt.Sprintf("%.1f %ciB",
 		float64(b)/float64(div), "KMGTPE"[exp])
 }
