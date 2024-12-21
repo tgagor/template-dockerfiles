@@ -19,7 +19,6 @@ labels:
 platforms:
   - linux/amd64
   - linux/arm64
-  - linux/arm/v7
 
 images:
   base:
@@ -71,7 +70,6 @@ images:
     # overwrite platforms for this image
     platforms:
       - linux/amd64
-      - linux/arm64
     variables:
       alpine:
         - "3.19"

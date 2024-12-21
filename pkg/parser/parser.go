@@ -79,8 +79,10 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 				log.Debug().Str("dockerfile", dockerfile).Msg("Generating temporary")
 
 				// Template Dockerfile
-				err := templateFile(dockerfileTemplate, dockerfile, configSet)
-				util.FailOnError(err)
+				if err := templateFile(dockerfileTemplate, dockerfile, configSet); err != nil {
+					log.Error().Err(err).Msg("Failed to template Dockerfile")
+					return err
+				}
 
 				// Cleanup temporary files
 				if flags.Delete {

@@ -22,14 +22,16 @@ Flags:
   -b, --build           Build Docker images after templating
   -c, --config string   Path to the configuration file (required)
   -d, --delete          Delete templated Dockerfiles after successful building
+  -e, --engine string   Select the container engine to use: docker or buildx (default "docker")
   -h, --help            help for td
   -i, --image string    Limit the build to a single image
-      --parallel int    Specify the number of threads to use, defaults to number of CPUs (default 8)
+      --parallel int    Specify the number of threads to use, defaults to number of CPUs (default 20)
   -p, --push            Push Docker images after building
   -s, --squash          Squash images to reduce size (experimental)
   -t, --tag string      Tag to use as the image version
   -v, --verbose         Increase verbosity of output
   -V, --version         Display the application version and exit
+
 ```
 
 ## **Installation**
@@ -208,6 +210,122 @@ Each image is identified by a key (e.g., `base`, `jdk`, `jre`) and contains the 
 - **Notes**:
   - I recommend to follow [OCI Label Schema](https://github.com/opencontainers/image-spec/blob/main/annotations.md), app will add some of them automatically.
   - Labels can be templated and they will override global labels of same name.
+
+## **Multi-Platform Builds**
+
+For multi-platform builds, you need to prepare your build environment. This guide uses QEMU emulation, which provides a broad list of platforms available out of the box.
+
+Building multi-platform images requires support from base images and tools that work on specific platforms. Verify compatibility before you start.
+
+### Install QEMU
+
+This example uses Ubuntu, but the steps should be similar on other platforms.
+
+1. Update your package list and install QEMU:
+
+    ```bash
+    sudo apt update
+    sudo apt-get install -y qemu-system
+    ```
+
+2. Use the [tonistiigi/binfmt](https://github.com/tonistiigi/binfmt) image to install QEMU and register the executable types on the host. This allows the `buildx` builder to recognize available target platforms:
+
+    ```bash
+    docker run --privileged --rm tonistiigi/binfmt --install all
+    ```
+
+3. Verify the installation with:
+
+    ```bash
+    docker buildx ls
+    ```
+
+    You should see output similar to:
+
+    ```bash
+    NAME/NODE     DRIVER/ENDPOINT   STATUS    BUILDKIT   PLATFORMS
+    default*      docker
+     \_ default    \_ default       running   v0.17.3    linux/amd64 (+3), linux/arm64, linux/arm (+2), linux/ppc64le, (3 more)
+    ```
+
+### Enable Containerd Image Store
+
+To enable the containerd snapshotters feature, follow these steps:
+
+1. Add the following configuration to your `/etc/docker/daemon.json` file:
+
+    ```json
+    {
+      "features": {
+        "containerd-snapshotter": true
+      }
+    }
+    ```
+
+2. Save the file.
+
+3. Restart the Docker daemon for the changes to take effect:
+
+    ```bash
+    sudo systemctl restart docker
+    ```
+
+4. After restarting the daemon, verify that you're using containerd snapshotter storage drivers:
+
+    ```bash
+    docker info -f '{{ .DriverStatus }}'
+    ```
+
+    You should see output similar to:
+
+    ```bash
+    [[driver-type io.containerd.snapshotter.v1]]
+    ```
+
+### Config file
+
+Now it's time to add required platforms to your configuration, you can put them in the global scope or per image, for example:
+
+```yaml
+platforms:
+  - linux/amd64
+  - linux/arm64
+
+images:
+  base:
+    dockerfile: base/Dockerfile.tpl
+    ...
+  jre:
+    dockerfile: jre/Dockerfile.tpl
+    # overwrite platforms for this image only
+    platforms:
+      - linux/amd64
+```
+
+You can also use few variables in templates that would refer to your current platform, like:
+  - `BUILDPLATFORM` — matches the current machine. (e.g. linux/amd64)
+  - `BUILDOS` — os component of BUILDPLATFORM, e.g. linux
+  - `BUILDARCH` — e.g. amd64, arm64, riscv64
+  - `BUILDVARIANT` — used to set ARM variant, e.g. v7
+  - `TARGETPLATFORM` — The value set with --platform flag on build
+  - `TARGETOS` - OS component from --platform, e.g. linux
+  - `TARGETARCH` - Architecture from --platform, e.g. arm64
+  - `TARGETVARIANT` -
+
+### Now build something
+
+Check your images, for multiple platforms, with:
+
+```bash
+docker image inspect \
+  --format "{{.ID}} {{.RepoTags}} {{.Architecture}}" \
+  $(docker image ls -q)
+```
+
+### For more information, check the official documentation:
+- [Building Multi-Platform Images](https://docs.docker.com/build/building/multi-platform/)
+- [Containerd Storage](https://docs.docker.com/engine/storage/containerd/)
+- [Managing Builders](https://docs.docker.com/build/builders/manage/)
 
 ## **Validation and Recommendations**
 
