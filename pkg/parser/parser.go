@@ -54,7 +54,11 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 		combinations := generateVariableCombinations(img.Variables)
 		for _, rawConfigSet := range combinations {
 			log.Info().Str("image", name).Msg("Building")
-			configSet := generateConfigSet(name, cfg, rawConfigSet, flags)
+			configSet, err := generateConfigSet(name, cfg, rawConfigSet, flags)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to generate config set")
+				return err
+			}
 
 			// skip excluded config sets
 			if isExcluded(configSet, img.Excludes) {
@@ -136,12 +140,11 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 		err = buildEngine.Shutdown()
 		util.FailOnError(err, "Failed to shutdown builder.")
 		fmt.Println("")
-
 	}
 	return nil
 }
 
-func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet map[string]interface{}, flag config.Flags) map[string]interface{} {
+func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet map[string]interface{}, flag config.Flags) (map[string]interface{}, error) {
 	newConfigSet := make(map[string]interface{})
 
 	// first populate global values
@@ -153,9 +156,6 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 	maps.Copy(newConfigSet["labels"].(map[string]string), cfg.GlobalLabels)
 	newConfigSet["platforms"] = cfg.GlobalPlatforms
 
-	// TODO: I should probably validate during config load if variables do not try to intruduce
-	//       any of the global keys, as it would be a conflict
-
 	// then populate image specific values
 	newConfigSet["image"] = imageName
 	maps.Copy(newConfigSet["labels"].(map[string]string), cfg.Images[imageName].Labels)
@@ -163,14 +163,26 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 		newConfigSet["platforms"] = cfg.Images[imageName].Platforms
 	}
 
-	// then populate variables per image
+	// check if users don't try to override reserved keys
+	for k := range currentConfigSet {
+		if isIgnoredKey(k) {
+			return nil, fmt.Errorf("variable key '%s' is reserved and cannot be used as variable", k)
+		}
+	}
 	maps.Copy(newConfigSet, currentConfigSet)
 
 	// populate flag specific values
 	newConfigSet["tag"] = flag.Tag
 
+	// validate if only allowed platforms are used
+	for _, p := range newConfigSet["platforms"].([]string) {
+		if !isAllowedPlatform(p) {
+			return nil, fmt.Errorf("platform '%s' is not allowed", p)
+		}
+	}
+
 	log.Debug().Interface("config set", newConfigSet).Msg("Generated")
-	return newConfigSet
+	return newConfigSet, nil
 }
 
 func collectLabels(configSet map[string]interface{}) map[string]string {
@@ -313,6 +325,23 @@ func isIgnoredKey(key string) bool {
 		"tag",
 		"labels",
 		"platforms":
+		return true
+	}
+	return false
+}
+
+func isAllowedPlatform(platform string) bool {
+	switch platform {
+	case
+		// following https://github.com/tonistiigi/binfmt
+		"linux/amd64",
+		"linux/arm64",
+		"linux/riscv64",
+		"linux/ppc64le",
+		"linux/s390x",
+		"linux/386",
+		"linux/arm/v7",
+		"linux/arm/v6":
 		return true
 	}
 	return false
