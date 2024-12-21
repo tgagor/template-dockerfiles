@@ -3,6 +3,7 @@ package builder
 import (
 	"encoding/json"
 	"regexp"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 	"github.com/tgagor/template-dockerfiles/pkg/cmd"
@@ -53,5 +54,11 @@ func labelsToArgs(labels map[string]string) []string {
 	for k, v := range labels {
 		args = append(args, "--label", k+"="+v)
 	}
+	return args
+}
+
+func platformsToArgs(platforms []string) []string {
+	args := []string{}
+	args = append(args, "--platform", strings.Join(platforms, ","))
 	return args
 }

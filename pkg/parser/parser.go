@@ -19,10 +19,10 @@ import (
 )
 
 // TODO: add multi-arch building support
-func Run(workdir string, cfg *config.Config, flag config.Flags) error {
+func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 	for _, name := range cfg.ImageOrder {
 		// Limit building to a single image
-		if flag.Image != "" && name != flag.Image {
+		if flags.Image != "" && name != flags.Image {
 			continue
 		}
 
@@ -37,7 +37,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 		var buildEngine builder.Builder
 
 		// Choose the build engine based on the flag
-		switch flag.Engine {
+		switch flags.Engine {
 		case "buildx":
 			buildEngine = &builder.BuildxBuilder{}
 		// case "kaniko":
@@ -48,24 +48,13 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 		err := buildEngine.Init()
 		util.FailOnError(err, "Failed to initialize builder.")
-		buildEngine.SetThreads(flag.Threads)
-		buildEngine.SetDryRun(!flag.Build)
+		buildEngine.SetThreads(flags.Threads)
+		buildEngine.SetDryRun(!flags.Build)
 
 		combinations := generateVariableCombinations(img.Variables)
-		for _, configSet := range combinations {
+		for _, rawConfigSet := range combinations {
 			log.Info().Str("image", name).Msg("Building")
-			// FIXME: This way of setting variables might collide with overrides
-			// 		  set in "variables" section, I need to change order here.
-			//		  New Map should be created with "config defaults", then
-			//		  current configSet applied over it, and merged with cfg.
-			configSet["image"] = name
-			configSet["tag"] = flag.Tag
-			configSet["registry"] = cfg.Registry
-			configSet["prefix"] = cfg.Prefix
-			configSet["maintainer"] = cfg.Maintainer
-			configSet["labels"] = make(map[string]string)
-			maps.Copy(configSet["labels"].(map[string]string), cfg.GlobalLabels)
-			maps.Copy(configSet["labels"].(map[string]string), img.Labels)
+			configSet := generateConfigSet(name, cfg, rawConfigSet, flags)
 
 			// skip excluded config sets
 			if isExcluded(configSet, img.Excludes) {
@@ -90,7 +79,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 				util.FailOnError(err)
 
 				// Cleanup temporary files
-				if flag.Delete {
+				if flags.Delete {
 					defer util.RemoveFile(dockerfile)
 				}
 			} else {
@@ -102,43 +91,43 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			currentImage := strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-")
 
 			// collect building image commands
-			buildEngine.Build(dockerfile, currentImage, labels, filepath.Dir(dockerfileTemplate), flag.Verbose)
+			buildEngine.Build(dockerfile, currentImage, configSet, filepath.Dir(dockerfileTemplate), flags.Verbose)
 
 			// collect tagging commands to keep order
 			for _, t := range tags {
 				taggedImg := generateImageName(cfg.Registry, cfg.Prefix, t)
-				buildEngine.Tag(currentImage, taggedImg, flag.Verbose)
-				buildEngine.Push(taggedImg, flag.Verbose)
+				buildEngine.Tag(currentImage, taggedImg, flags.Verbose)
+				buildEngine.Push(taggedImg, flags.Verbose)
 			}
 
 			// remove temporary tags
-			buildEngine.Remove(currentImage, flag.Verbose)
+			buildEngine.Remove(currentImage, flags.Verbose)
 		}
 
-		if flag.Build {
+		if flags.Build {
 			err := buildEngine.RunBuilding()
 			util.FailOnError(err, "Building failed with error, check error above. Exiting.")
 		}
 
 		// let squash it
-		if flag.Build && flag.Squash {
+		if flags.Build && flags.Squash {
 			// inspect requires images to be already built, so I need another loop here
 			for _, configSet := range combinations {
 				currentImage := strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-")
-				buildEngine.Squash(currentImage, flag.Verbose)
+				buildEngine.Squash(currentImage, flags.Verbose)
 			}
 			err := buildEngine.RunSquashing()
 			util.FailOnError(err, "Squashing failed with error, check error above. Exiting.")
 		}
 
 		// continue typical build
-		if flag.Build {
+		if flags.Build {
 			err := buildEngine.RunTagging()
 			util.FailOnError(err, "Tagging failed with error, check error above. Exiting.")
 			err = buildEngine.RunCleanup()
 			util.FailOnError(err, "Dropping temporary images failed. Exiting.")
 		}
-		if flag.Push {
+		if flags.Push {
 			err := buildEngine.RunPushing()
 			util.FailOnError(err, "Pushing images failed, check error above. Exiting.")
 		}
@@ -150,6 +139,38 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 	}
 	return nil
+}
+
+func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet map[string]interface{}, flag config.Flags) map[string]interface{} {
+	newConfigSet := make(map[string]interface{})
+
+	// first populate global values
+	newConfigSet["registry"] = cfg.Registry
+	newConfigSet["prefix"] = cfg.Prefix
+	newConfigSet["maintainer"] = cfg.Maintainer
+	newConfigSet["labels"] = map[string]string{}
+	newConfigSet["platforms"] = []string{}
+	maps.Copy(newConfigSet["labels"].(map[string]string), cfg.GlobalLabels)
+	newConfigSet["platforms"] = cfg.GlobalPlatforms
+
+	// TODO: I should probably validate during config load if variables do not try to intruduce
+	//       any of the global keys, as it would be a conflict
+
+	// then populate image specific values
+	newConfigSet["image"] = imageName
+	maps.Copy(newConfigSet["labels"].(map[string]string), cfg.Images[imageName].Labels)
+	if len(cfg.Images[imageName].Platforms) > 0 {
+		newConfigSet["platforms"] = cfg.Images[imageName].Platforms
+	}
+
+	// then populate variables per image
+	maps.Copy(newConfigSet, currentConfigSet)
+
+	// populate flag specific values
+	newConfigSet["tag"] = flag.Tag
+
+	log.Debug().Interface("config set", newConfigSet).Msg("Generated")
+	return newConfigSet
 }
 
 func collectLabels(configSet map[string]interface{}) map[string]string {
@@ -290,7 +311,8 @@ func isIgnoredKey(key string) bool {
 		"prefix",
 		"maintainer",
 		"tag",
-		"labels":
+		"labels",
+		"platforms":
 		return true
 	}
 	return false

@@ -9,12 +9,13 @@ import (
 )
 
 type Config struct {
-	Registry     string                 `yaml:"registry"`
-	Prefix       string                 `yaml:"prefix"`
-	Maintainer   string                 `yaml:"maintainer"`
-	GlobalLabels map[string]string      `yaml:"labels"`
-	Images       map[string]ImageConfig `yaml:"images"`
-	ImageOrder   []string               `yaml:"-"` // To preserve the order of images
+	Registry        string                 `yaml:"registry"`
+	Prefix          string                 `yaml:"prefix"`
+	Maintainer      string                 `yaml:"maintainer"`
+	GlobalLabels    map[string]string      `yaml:"labels"`
+	GlobalPlatforms []string               `yaml:"platforms"`
+	Images          map[string]ImageConfig `yaml:"images"`
+	ImageOrder      []string               `yaml:"-"` // To preserve the order of images
 }
 
 type imageLoader struct {
@@ -26,6 +27,7 @@ type ImageConfig struct {
 	Variables  map[string][]interface{} `yaml:"variables"`
 	Excludes   []map[string]string      `yaml:"excludes"`
 	Tags       []string                 `yaml:"tags"`
+	Platforms  []string                 `yaml:"platforms"`
 	Labels     map[string]string        `yaml:"labels"`
 }
 
