@@ -52,6 +52,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 		buildEngine.SetDryRun(!flag.Build)
 
 		combinations := generateVariableCombinations(img.Variables)
+		log.Debug().Interface("combinations", combinations).Msg("Generated")
 		for _, configSet := range combinations {
 			log.Info().Str("image", name).Msg("Building")
 			// FIXME: This way of setting variables might collide with overrides
@@ -86,8 +87,10 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 				log.Debug().Str("dockerfile", dockerfile).Msg("Generating temporary")
 
 				// Template Dockerfile
-				err := templateFile(dockerfileTemplate, dockerfile, configSet)
-				util.FailOnError(err)
+				if err := templateFile(dockerfileTemplate, dockerfile, configSet); err != nil {
+					log.Error().Err(err).Str("dockerfile", dockerfile).Msg("Failed to template Dockerfile")
+					return err
+				}
 
 				// Cleanup temporary files
 				if flag.Delete {
@@ -99,7 +102,8 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 			// name is required to avoid collisions between images or
 			// when variables are not defined to have actual image name
-			currentImage := strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-")
+			// ERROR: invalid tag "timezone-UTC": repository name must be lowercase
+			currentImage := strings.ToLower(strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-"))
 
 			// collect building image commands
 			buildEngine.Build(dockerfile, currentImage, labels, filepath.Dir(dockerfileTemplate), flag.Verbose)
@@ -124,7 +128,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 		if flag.Build && flag.Squash {
 			// inspect requires images to be already built, so I need another loop here
 			for _, configSet := range combinations {
-				currentImage := strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-")
+				currentImage := strings.ToLower(strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-"))
 				buildEngine.Squash(currentImage, flag.Verbose)
 			}
 			err := buildEngine.RunSquashing()
@@ -175,45 +179,54 @@ func collectTags(img config.ImageConfig, configSet map[string]interface{}, name 
 }
 
 // generates all combinations of variables
-func generateVariableCombinations(variables map[string][]interface{}) []map[string]interface{} {
-	// Extract keys
-	keys := make([]string, 0, len(variables))
-	values := make([][]interface{}, 0, len(variables))
-
-	// Collect keys and corresponding value slices
-	for key, val := range variables {
-		keys = append(keys, key)
-		values = append(values, val)
-	}
-
-	// Resulting combinations
+func generateVariableCombinations(variables map[string]interface{}) []map[string]interface{} {
 	var combinations []map[string]interface{}
 
-	// Recursive helper to generate combinations
-	var generate func(int, map[string]interface{})
-	generate = func(depth int, current map[string]interface{}) {
-		if depth == len(keys) {
-			// Create a copy of the map and append it to the results
-			combination := make(map[string]interface{}, len(current))
+	// Helper function to recursively generate combinations
+	var generate func(map[string]interface{}, map[string]interface{}, []string)
+	generate = func(current map[string]interface{}, remaining map[string]interface{}, keys []string) {
+		if len(keys) == 0 {
+			combo := make(map[string]interface{})
 			for k, v := range current {
-				combination[k] = v
+				combo[k] = v
 			}
-			combinations = append(combinations, combination)
+			combinations = append(combinations, combo)
 			return
 		}
 
-		// Iterate over values for the current key
-		key := keys[depth]
-		for _, value := range values[depth] {
-			current[key] = value
-			generate(depth+1, current)
+		key := keys[0]
+		value := remaining[key]
+
+		switch v := value.(type) {
+		case []interface{}:
+			for _, item := range v {
+				current[key] = item
+				generate(current, remaining, keys[1:])
+			}
+		case string:
+			current[key] = v
+			generate(current, remaining, keys[1:])
+		case map[string]interface{}:
+			for subKey, subValue := range v {
+				current[key] = map[string]interface{}{subKey: subValue}
+				generate(current, remaining, keys[1:])
+			}
+		default:
+			current[key] = v
+			generate(current, remaining, keys[1:])
 		}
 	}
 
-	// Start generating combinations
-	generate(0, make(map[string]interface{}))
-
+	generate(map[string]interface{}{}, variables, getKeys(variables))
 	return combinations
+}
+
+func getKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 func templateTags(tagTemplates []string, configSet map[string]interface{}) ([]string, error) {
@@ -258,14 +271,25 @@ func sanitizeForFileName(input string) string {
 	return reg.ReplaceAllString(input, "_")
 }
 
+// to avoid tags like this
+// ERROR: invalid tag "test-case-7-alpine-3.21-crazy-map_key2_value2_-timezone-utc": invalid reference format
+func sanitizeForTag(input string) string {
+	// Replace any character that is not a letter, number, or safe symbol (-, _) with an underscore
+	// FIXME: This can actually result in collisions if someones uses a lot of symbols in variables
+	// 		  But I didn't face it yet, maybe it's not a problem at all
+	reg := regexp.MustCompile(`[^a-zA-Z0-9-_\.]+`)
+	return strings.Trim(reg.ReplaceAllString(input, "-"), "-")
+}
+
 func generateCombinationString(configSet map[string]interface{}) string {
 	var parts []string
 	for k, v := range configSet {
 		if !isIgnoredKey(k) {
 			// Apply sanitization to both key and value
-			safeKey := sanitizeForFileName(k)
-			safeValue := sanitizeForFileName(fmt.Sprintf("%v", v))
+			safeKey := sanitizeForTag(k)
+			safeValue := sanitizeForTag(fmt.Sprintf("%v", v))
 			parts = append(parts, fmt.Sprintf("%s-%s", safeKey, safeValue))
+			log.Debug().Str("key", safeKey).Str("value", safeValue).Msg("Combining")
 		}
 	}
 	sort.Strings(parts)
@@ -279,7 +303,7 @@ func generateDockerfilePath(dockerFileTemplate string, image string, configSet m
 }
 
 func generateImageName(registry string, prefix string, name string) string {
-	return path.Join(registry, prefix, name)
+	return strings.ToLower(path.Join(registry, prefix, name))
 }
 
 func isIgnoredKey(key string) bool {

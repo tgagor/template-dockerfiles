@@ -1,0 +1,17 @@
+---
+images:
+  test-case-7:
+    dockerfile: Dockerfile.tpl
+    variables:
+      # add consistent support for different types of values
+      alpine:
+        - "3.20"
+        - "3.21"
+      timezone: "UTC"
+      # it's extremely hard to make use of keys in tags and labels so I advice to avoid them
+      # this example fails on squashing
+      crazy:
+        key1: value1
+        key2: value2
+    tags:
+      - normal-{{ .alpine }}-{{ .timezone }}

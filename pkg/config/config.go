@@ -22,11 +22,11 @@ type imageLoader struct {
 }
 
 type ImageConfig struct {
-	Dockerfile string                   `yaml:"dockerfile"`
-	Variables  map[string][]interface{} `yaml:"variables"`
-	Excludes   []map[string]string      `yaml:"excludes"`
-	Tags       []string                 `yaml:"tags"`
-	Labels     map[string]string        `yaml:"labels"`
+	Dockerfile string                 `yaml:"dockerfile"`
+	Variables  map[string]interface{} `yaml:"variables"` // Changed to interface{}
+	Excludes   []map[string]string    `yaml:"excludes"`
+	Tags       []string               `yaml:"tags"`
+	Labels     map[string]string      `yaml:"labels"`
 }
 
 func Load(filename string) (*Config, error) {
