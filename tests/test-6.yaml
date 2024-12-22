@@ -1,0 +1,16 @@
+---
+platforms:
+  - linux/amd64
+  - linux/arm64
+
+images:
+  test-case-5:
+    # white characters at beginning and end of labels and tags should be trimmed
+    dockerfile: mutliplatform-Dockerfile.tpl
+    variables:
+      alpine:
+        - "3.19"
+        - "3.20"
+        - "3.21"
+    tags:
+      - "base:alpine{{ .alpine }}"

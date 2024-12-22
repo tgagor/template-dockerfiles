@@ -63,11 +63,11 @@ func (b *DockerBuilder) SetDryRun(dryRun bool) {
 	b.squashImportTarsToImgs.DryRun(dryRun)
 }
 
-func (b *DockerBuilder) Build(dockerfile, imageName string, labels map[string]string, contextDir string, verbose bool) {
+func (b *DockerBuilder) Build(dockerfile, imageName string, configSet map[string]interface{}, contextDir string, verbose bool) {
 	builder := cmd.New("docker").Arg("build").
 		Arg("-f", dockerfile).
 		Arg("-t", imageName).
-		Arg(labelsToArgs(labels)...).
+		Arg(labelsToArgs(configSet["labels"].(map[string]string))...).
 		Arg(contextDir).
 		PreInfo("Building " + imageName).
 		SetVerbose(verbose)

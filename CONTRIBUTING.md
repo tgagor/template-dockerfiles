@@ -1,4 +1,5 @@
-## Known bugs
+Known bugs
+==========
 
 - None, for now.
 - **not a bug** Parallelism on per image level.

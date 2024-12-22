@@ -19,10 +19,10 @@ import (
 )
 
 // TODO: add multi-arch building support
-func Run(workdir string, cfg *config.Config, flag config.Flags) error {
+func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 	for _, name := range cfg.ImageOrder {
 		// Limit building to a single image
-		if flag.Image != "" && name != flag.Image {
+		if flags.Image != "" && name != flags.Image {
 			continue
 		}
 
@@ -37,7 +37,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 		var buildEngine builder.Builder
 
 		// Choose the build engine based on the flag
-		switch flag.Engine {
+		switch flags.Engine {
 		case "buildx":
 			buildEngine = &builder.BuildxBuilder{}
 		// case "kaniko":
@@ -48,25 +48,17 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 
 		err := buildEngine.Init()
 		util.FailOnError(err, "Failed to initialize builder.")
-		buildEngine.SetThreads(flag.Threads)
-		buildEngine.SetDryRun(!flag.Build)
+		buildEngine.SetThreads(flags.Threads)
+		buildEngine.SetDryRun(!flags.Build)
 
 		combinations := generateVariableCombinations(img.Variables)
-		log.Debug().Interface("combinations", combinations).Msg("Generated")
-		for _, configSet := range combinations {
+		for _, rawConfigSet := range combinations {
 			log.Info().Str("image", name).Msg("Building")
-			// FIXME: This way of setting variables might collide with overrides
-			// 		  set in "variables" section, I need to change order here.
-			//		  New Map should be created with "config defaults", then
-			//		  current configSet applied over it, and merged with cfg.
-			configSet["image"] = name
-			configSet["tag"] = flag.Tag
-			configSet["registry"] = cfg.Registry
-			configSet["prefix"] = cfg.Prefix
-			configSet["maintainer"] = cfg.Maintainer
-			configSet["labels"] = make(map[string]string)
-			maps.Copy(configSet["labels"].(map[string]string), cfg.GlobalLabels)
-			maps.Copy(configSet["labels"].(map[string]string), img.Labels)
+			configSet, err := generateConfigSet(name, cfg, rawConfigSet, flags)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to generate config set")
+				return err
+			}
 
 			// skip excluded config sets
 			if isExcluded(configSet, img.Excludes) {
@@ -93,7 +85,7 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 				}
 
 				// Cleanup temporary files
-				if flag.Delete {
+				if flags.Delete {
 					defer util.RemoveFile(dockerfile)
 				}
 			} else {
@@ -106,26 +98,26 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 			currentImage := strings.ToLower(strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-"))
 
 			// collect building image commands
-			buildEngine.Build(dockerfile, currentImage, labels, filepath.Dir(dockerfileTemplate), flag.Verbose)
+			buildEngine.Build(dockerfile, currentImage, configSet, filepath.Dir(dockerfileTemplate), flags.Verbose)
 
 			// collect tagging commands to keep order
 			for _, t := range tags {
 				taggedImg := generateImageName(cfg.Registry, cfg.Prefix, t)
-				buildEngine.Tag(currentImage, taggedImg, flag.Verbose)
-				buildEngine.Push(taggedImg, flag.Verbose)
+				buildEngine.Tag(currentImage, taggedImg, flags.Verbose)
+				buildEngine.Push(taggedImg, flags.Verbose)
 			}
 
 			// remove temporary tags
-			buildEngine.Remove(currentImage, flag.Verbose)
+			buildEngine.Remove(currentImage, flags.Verbose)
 		}
 
-		if flag.Build {
+		if flags.Build {
 			err := buildEngine.RunBuilding()
 			util.FailOnError(err, "Building failed with error, check error above. Exiting.")
 		}
 
 		// let squash it
-		if flag.Build && flag.Squash {
+		if flags.Build && flags.Squash {
 			// inspect requires images to be already built, so I need another loop here
 			for _, configSet := range combinations {
 				currentImage := strings.ToLower(strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-"))
@@ -136,13 +128,13 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 		}
 
 		// continue typical build
-		if flag.Build {
+		if flags.Build {
 			err := buildEngine.RunTagging()
 			util.FailOnError(err, "Tagging failed with error, check error above. Exiting.")
 			err = buildEngine.RunCleanup()
 			util.FailOnError(err, "Dropping temporary images failed. Exiting.")
 		}
-		if flag.Push {
+		if flags.Push {
 			err := buildEngine.RunPushing()
 			util.FailOnError(err, "Pushing images failed, check error above. Exiting.")
 		}
@@ -151,9 +143,49 @@ func Run(workdir string, cfg *config.Config, flag config.Flags) error {
 		err = buildEngine.Shutdown()
 		util.FailOnError(err, "Failed to shutdown builder.")
 		fmt.Println("")
-
 	}
 	return nil
+}
+
+func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet map[string]interface{}, flag config.Flags) (map[string]interface{}, error) {
+	newConfigSet := make(map[string]interface{})
+
+	// first populate global values
+	newConfigSet["registry"] = cfg.Registry
+	newConfigSet["prefix"] = cfg.Prefix
+	newConfigSet["maintainer"] = cfg.Maintainer
+	newConfigSet["labels"] = map[string]string{}
+	newConfigSet["platforms"] = []string{}
+	maps.Copy(newConfigSet["labels"].(map[string]string), cfg.GlobalLabels)
+	newConfigSet["platforms"] = cfg.GlobalPlatforms
+
+	// then populate image specific values
+	newConfigSet["image"] = imageName
+	maps.Copy(newConfigSet["labels"].(map[string]string), cfg.Images[imageName].Labels)
+	if len(cfg.Images[imageName].Platforms) > 0 {
+		newConfigSet["platforms"] = cfg.Images[imageName].Platforms
+	}
+
+	// check if users don't try to override reserved keys
+	for k := range currentConfigSet {
+		if isIgnoredKey(k) {
+			return nil, fmt.Errorf("variable key '%s' is reserved and cannot be used as variable", k)
+		}
+	}
+	maps.Copy(newConfigSet, currentConfigSet)
+
+	// populate flag specific values
+	newConfigSet["tag"] = flag.Tag
+
+	// validate if only allowed platforms are used
+	for _, p := range newConfigSet["platforms"].([]string) {
+		if !isAllowedPlatform(p) {
+			return nil, fmt.Errorf("platform '%s' is not allowed", p)
+		}
+	}
+
+	log.Debug().Interface("config set", newConfigSet).Msg("Generated")
+	return newConfigSet, nil
 }
 
 func collectLabels(configSet map[string]interface{}) map[string]string {
@@ -314,7 +346,25 @@ func isIgnoredKey(key string) bool {
 		"prefix",
 		"maintainer",
 		"tag",
-		"labels":
+		"labels",
+		"platforms":
+		return true
+	}
+	return false
+}
+
+func isAllowedPlatform(platform string) bool {
+	switch platform {
+	case
+		// following https://github.com/tonistiigi/binfmt
+		"linux/amd64",
+		"linux/arm64",
+		"linux/riscv64",
+		"linux/ppc64le",
+		"linux/s390x",
+		"linux/386",
+		"linux/arm/v7",
+		"linux/arm/v6":
 		return true
 	}
 	return false

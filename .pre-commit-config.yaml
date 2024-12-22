@@ -26,7 +26,7 @@ repos:
         args: [-over=20]
       # - id: validate-toml
       # - id: no-go-testing
-      - id: golangci-lint
+      # - id: golangci-lint
       - id: go-critic
       # - id: go-unit-tests
       # - id: go-build

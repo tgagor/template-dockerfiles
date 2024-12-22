@@ -3,7 +3,7 @@ package builder
 type Builder interface {
 	// New(threads int, dryRun bool) *Builder
 	Init() error
-	Build(dockerfile, imageName string, labels map[string]string, contextDir string, verbose bool)
+	Build(dockerfile, imageName string, configSet map[string]interface{}, contextDir string, verbose bool)
 	Squash(imageName string, verbose bool)
 	Tag(imageName, taggedImage string, verbose bool)
 	Push(taggedImage string, verbose bool)

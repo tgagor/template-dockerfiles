@@ -1,0 +1,99 @@
+---
+registry: repo.local
+prefix: alpine
+maintainer: Tomasz Gągor <tomasz@gagor.pl>
+
+labels:
+  org.opencontainers.image.vendor: My Corp
+  # https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/
+  org.opencontainers.image.licenses: GPL-2.0-only
+  org.opencontainers.image.url: https://my.url
+  org.opencontainers.image.documentation: https://my.url/docs
+  org.opencontainers.image.title: My Corp's Docker base images
+  org.opencontainers.image.description: |
+    This is a longer description of what this image is capable of.
+
+    Let try templates here.
+    Image test-case-2d on Alpine Linux {{ .alpine }}
+
+platforms:
+  - linux/amd64
+  - linux/arm64
+
+images:
+  base:
+    dockerfile: base/Dockerfile.tpl
+    variables:
+      alpine:
+        - "3.19"
+        - "3.20"
+        - "3.21"
+    tags:
+      - base:{{ .tag }}-alpine{{ .alpine }}
+      - base:alpine{{ .alpine }}
+      - base:{{ .tag }}-alpine{{ .alpine | splitList "." | first }}
+      - base:alpine{{ .alpine | splitList "." | first }}
+      - base:{{ .tag }}-alpine
+      - base:{{ .tag }}
+      - base:alpine
+      - base
+
+  jdk:
+    dockerfile: jdk/Dockerfile.tpl
+    variables:
+      alpine:
+        - "3.19"
+        - "3.20"
+        - "3.21"
+      java:
+        - 11
+        - 17
+        - 21
+        - 23
+    excludes:
+      - alpine: "3.19"
+        java: 23
+      - alpine: "3.20"
+        java: 11
+    tags:
+      - jdk:{{ .tag }}-{{ .java }}-alpine{{ .alpine }}
+      - jdk:{{ .java }}-alpine{{ .alpine }}
+      - jdk:{{ .java }}-alpine{{ .alpine | splitList "." | first }}
+      - jdk:{{ .tag }}-{{ .java }}-alpine
+      - jdk:{{ .tag }}-{{ .java }}
+      - jdk:{{ .java }}-alpine
+      - jdk:{{ .tag }}
+      - jdk
+
+  jre:
+    dockerfile: jre/Dockerfile.tpl
+    # overwrite platforms for this image
+    platforms:
+      - linux/amd64
+    variables:
+      alpine:
+        - "3.19"
+        - "3.20"
+        - "3.21"
+      java:
+        - 11
+        - 17
+        - 21
+        - 23
+    excludes:
+      - alpine: "3.19"
+        java: 23
+      - alpine: "3.20"
+        java: 11
+      - alpine: "3.21"
+        java: 11
+    tags:
+      - jre:{{ .tag }}-{{ .java }}-alpine{{ .alpine }}
+      - jre:{{ .java }}-alpine{{ .alpine }}
+      - jre:{{ .java }}-alpine{{ .alpine | splitList "." | first }}
+      - jre:{{ .tag }}-{{ .java }}-alpine
+      - jre:{{ .tag }}-{{ .java }}
+      - jre:{{ .java }}-alpine
+      - jre:{{ .java }}
+      - jre:{{ .tag }}
+      - jre
