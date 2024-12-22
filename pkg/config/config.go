@@ -28,6 +28,7 @@ type ImageConfig struct {
 	Excludes   []map[string]string    `yaml:"excludes"`
 	Tags       []string               `yaml:"tags"`
 	Labels     map[string]string      `yaml:"labels"`
+	Platforms  []string               `yaml:"platforms"`
 }
 
 func Load(filename string) (*Config, error) {

@@ -121,7 +121,7 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 			// inspect requires images to be already built, so I need another loop here
 			for _, configSet := range combinations {
 				currentImage := strings.ToLower(strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-"))
-				buildEngine.Squash(currentImage, flag.Verbose)
+				buildEngine.Squash(currentImage, flags.Verbose)
 			}
 			err := buildEngine.RunSquashing()
 			util.FailOnError(err, "Squashing failed with error, check error above. Exiting.")
