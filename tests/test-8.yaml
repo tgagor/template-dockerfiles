@@ -16,8 +16,6 @@ images:
         - 10
         - 11
     excludes:
-      # TODO: verify if excludes with just few (not all) variables would match properly
-      #       they should!
       - tomcat: 11
         java: 8
       - tomcat: 11
