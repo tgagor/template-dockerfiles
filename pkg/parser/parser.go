@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -370,40 +369,17 @@ func isAllowedPlatform(platform string) bool {
 	return false
 }
 
-func copyMapExcludingIgnoredKeys(m map[string]interface{}) map[string]interface{} {
-	cp := make(map[string]interface{})
-	for k, v := range m {
-		if isIgnoredKey(k) {
-			continue
+func isExcluded(configSet map[string]interface{}, excludedSets []map[string]interface{}) bool {
+	for _, exclusion := range excludedSets {
+		matchCounter := 0
+		// verify and count matching exclusion variables
+		for k, v := range exclusion {
+			if configSet[k] == v {
+				matchCounter += 1
+			}
 		}
-		vm, ok := v.(map[string]interface{})
-		if ok {
-			cp[k] = copyMapExcludingIgnoredKeys(vm)
-		} else {
-			cp[k] = v
-		}
-	}
-
-	return cp
-}
-
-func excludesToInterfaceMap(input []map[string]string) []map[string]interface{} {
-	output := make([]map[string]interface{}, len(input))
-	for _, o := range input {
-		// Convert each []string to []interface{}
-		interfaces := make(map[string]interface{}, len(o))
-		for k, v := range o {
-			interfaces[k] = v
-		}
-		output = append(output, interfaces)
-	}
-	return output
-}
-
-func isExcluded(item map[string]interface{}, excludes []map[string]string) bool {
-	copy := copyMapExcludingIgnoredKeys(item)
-	for _, e := range excludesToInterfaceMap(excludes) {
-		if reflect.DeepEqual(copy, e) {
+		if matchCounter == len(exclusion) { // if all conditions match
+			// then exclusion condition is met
 			return true
 		}
 	}

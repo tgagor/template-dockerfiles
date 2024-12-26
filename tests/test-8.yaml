@@ -1,0 +1,35 @@
+images:
+  tomcat:
+    dockerfile: Dockerfile.tpl
+    variables:
+      alpine:
+        - "3.19"
+        - "3.20"
+        - "3.21"
+      java:
+        - 8
+        - 11
+        - 17
+        - 21
+      tomcat:
+        - 9
+        - 10
+        - 11
+    excludes:
+      # TODO: verify if excludes with just few (not all) variables would match properly
+      #       they should!
+      - tomcat: 11
+        java: 8
+      - tomcat: 11
+        java: 11
+      - tomcat: 10
+        java: 8
+    tags:
+      - tomcat:{{ .tag }}-{{ .java }}-alpine{{ .alpine }}
+      - tomcat:{{ .java }}-alpine{{ .alpine }}
+      - tomcat:{{ .java }}-alpine{{ .alpine | splitList "." | first }}
+      - tomcat:{{ .tag }}-{{ .java }}-alpine
+      - tomcat:{{ .tag }}-{{ .java }}
+      - tomcat:{{ .java }}-alpine
+      - tomcat:{{ .tag }}
+      - tomcat
