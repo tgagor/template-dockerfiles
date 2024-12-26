@@ -1,6 +1,6 @@
 images:
   tomcat:
-    dockerfile: Dockerfile.tpl
+    dockerfile: tomcat-Dockerfile.tpl
     variables:
       alpine:
         - "3.19"
@@ -25,11 +25,19 @@ images:
       - tomcat: 10
         java: 8
     tags:
-      - tomcat:{{ .tag }}-{{ .java }}-alpine{{ .alpine }}
-      - tomcat:{{ .java }}-alpine{{ .alpine }}
-      - tomcat:{{ .java }}-alpine{{ .alpine | splitList "." | first }}
-      - tomcat:{{ .tag }}-{{ .java }}-alpine
-      - tomcat:{{ .tag }}-{{ .java }}
-      - tomcat:{{ .java }}-alpine
-      - tomcat:{{ .tag }}
-      - tomcat
+      - tomcat:{{ .tag }}-tomcat{{ .tomcat }}-jdk{{ .java }}-alpine{{ .alpine }}
+      - tomcat:{{ .tag }}-{{ .tomcat }}-jdk{{ .java }}-alpine{{ .alpine }}
+      - tomcat:{{ .tomcat }}-jdk{{ .java }}-alpine{{ .alpine }}
+      - tomcat:{{ .tag }}-{{ .tomcat }}-jdk{{ .java }}-alpine{{ .alpine | splitList "." | first }}
+      - tomcat:{{ .tomcat }}-jdk{{ .java }}-alpine{{ .alpine | splitList "." | first }}
+      - tomcat:{{ .tag }}-{{ .tomcat | splitList "." | first }}-jdk{{ .java }}-alpine{{ .alpine | splitList "." | first }}
+      - tomcat:{{ .tomcat | splitList "." | first }}-jdk{{ .java }}-alpine{{ .alpine | splitList "." | first }}
+      - tomcat:{{ .tag }}-{{ .tomcat }}-jdk{{ .java }}
+      - tomcat:{{ .tomcat }}-jdk{{ .java }}
+      - tomcat:{{ .tag }}-{{ .tomcat | splitList "." | first }}-jdk{{ .java }}
+      - tomcat:{{ .tomcat | splitList "." | first }}-jdk{{ .java }}
+      - tomcat:{{ .tag }}-{{ .tomcat }}
+      - tomcat:{{ .tomcat }}
+      - tomcat:{{ .tag }}-{{ .tomcat | splitList "." | first }}
+      - tomcat:{{ .tomcat | splitList "." | first }}
+      - tomcat:latest
