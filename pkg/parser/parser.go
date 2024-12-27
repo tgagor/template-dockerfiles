@@ -112,6 +112,12 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 		if flags.Build && flags.Squash {
 			// inspect requires images to be already built, so I need another loop here
 			for _, configSet := range combinations {
+				// skip excluded config sets
+				if isExcluded(configSet, img.Excludes) {
+					log.Debug().Interface("config set", configSet).Interface("excludes", img.Excludes).Msg("Skipping excluded")
+					continue
+				}
+
 				currentImage := strings.ToLower(strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-"))
 				buildEngine.Squash(currentImage, flags.Verbose)
 			}
