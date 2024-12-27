@@ -12,15 +12,16 @@ images:
         - 17
         - 21
       tomcat:
-        - 9
-        - 10
-        - 11
+        - 9.0.98
+        - 10.1.34
+        - 11.0.2
     excludes:
-      - tomcat: 11
+      # follow minimum required version
+      - tomcat: 11.0.2
         java: 8
-      - tomcat: 11
+      - tomcat: 11.0.2
         java: 11
-      - tomcat: 10
+      - tomcat: 10.1.34
         java: 8
     tags:
       - tomcat:{{ .tag }}-tomcat{{ .tomcat }}-jdk{{ .java }}-alpine{{ .alpine }}
