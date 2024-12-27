@@ -68,7 +68,7 @@ func (b *DockerBuilder) Build(dockerfile, imageName string, configSet map[string
 		Arg("-f", dockerfile).
 		Arg("-t", imageName).
 		Arg(labelsToArgs(configSet["labels"].(map[string]string))...).
-		Arg(argsToArgs(configSet["args"].(map[string]interface{}))...).
+		Arg(buildArgsToArgs(configSet["args"].(map[string]string))...).
 		Arg(contextDir).
 		PreInfo("Building " + imageName).
 		SetVerbose(verbose)

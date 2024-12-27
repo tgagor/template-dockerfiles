@@ -45,14 +45,14 @@ func (b *BuildxBuilder) SetDryRun(dryRun bool) {
 func (b *BuildxBuilder) Build(dockerfile, imageName string, configSet map[string]interface{}, contextDir string, verbose bool) {
 	platforms := configSet["platforms"].([]string)
 	labels := configSet["labels"].(map[string]string)
-	buildArgs := configSet["args"].(map[string]interface{})
+	buildArgs := configSet["args"].(map[string]string)
 	builder := cmd.New("docker").Arg("buildx").Arg("build")
 	if len(platforms) > 0 {
 		builder.Arg(platformsToArgs(platforms)...)
 	}
 	builder.Arg("-f", dockerfile).Arg("-t", imageName).
 		Arg(labelsToArgs(labels)...).
-		Arg(argsToArgs(buildArgs)...).
+		Arg(buildArgsToArgs(buildArgs)...).
 		Arg(contextDir).SetVerbose(verbose)
 	b.buildTasks.AddTask(builder)
 }

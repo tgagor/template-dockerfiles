@@ -3,7 +3,6 @@ package parser
 import (
 	"fmt"
 	"maps"
-	"os"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -65,25 +64,6 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 				continue
 			}
 
-			// Collect all required data
-			tags := collectTags(img, configSet, name)
-
-			// Collect labels, starting with global labels, then oci, then per image
-			labels := collectOCILabels(configSet)
-			templatedLabels, err := collectLabels(configSet)
-			if err != nil {
-				return err
-			}
-			maps.Copy(labels, templatedLabels)
-			configSet["labels"] = labels
-
-			// Collect build args
-			buildArgs, err := collectBuildArgs(configSet)
-			if err != nil {
-				return err
-			}
-			configSet["args"] = buildArgs
-
 			var dockerfile string
 			if strings.HasSuffix(dockerfileTemplate, ".tpl") {
 				dockerfile = generateDockerfilePath(dockerfileTemplate, name, configSet)
@@ -113,7 +93,7 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 			buildEngine.Build(dockerfile, currentImage, configSet, filepath.Dir(dockerfileTemplate), flags.Verbose)
 
 			// collect tagging commands to keep order
-			for _, t := range tags {
+			for _, t := range configSet["tags"].([]string) {
 				taggedImg := generateImageName(cfg.Registry, cfg.Prefix, t)
 				buildEngine.Tag(currentImage, taggedImg, flags.Verbose)
 				buildEngine.Push(taggedImg, flags.Verbose)
@@ -166,7 +146,9 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 	newConfigSet["registry"] = cfg.Registry
 	newConfigSet["prefix"] = cfg.Prefix
 	newConfigSet["maintainer"] = cfg.Maintainer
+	newConfigSet["tags"] = []string{}
 	newConfigSet["labels"] = map[string]string{}
+	newConfigSet["args"] = map[string]string{}
 	newConfigSet["platforms"] = []string{}
 	maps.Copy(newConfigSet["labels"].(map[string]string), cfg.GlobalLabels)
 	newConfigSet["platforms"] = cfg.GlobalPlatforms
@@ -196,6 +178,28 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 		}
 	}
 
+	// Collect all required data
+	if tags, err := collectTags(cfg.Images[imageName], newConfigSet, imageName); err != nil {
+		return nil, err
+	} else {
+		newConfigSet["tags"] = tags
+	}
+
+	// Collect labels, starting with global labels, then oci, then per image
+	maps.Copy(newConfigSet["labels"].(map[string]string), collectOCILabels(newConfigSet))
+	templatedLabels, err := collectLabels(newConfigSet)
+	if err != nil {
+		return nil, err
+	}
+	maps.Copy(newConfigSet["labels"].(map[string]string), templatedLabels)
+
+	// Collect build args
+	buildArgs, err := collectBuildArgs(newConfigSet)
+	if err != nil {
+		return nil, err
+	}
+	newConfigSet["args"] = buildArgs
+
 	log.Debug().Interface("config set", newConfigSet).Msg("Generated")
 	return newConfigSet, nil
 }
@@ -222,18 +226,18 @@ func collectBuildArgs(configSet map[string]interface{}) (map[string]string, erro
 	return buildArgs, nil
 }
 
-func collectTags(img config.ImageConfig, configSet map[string]interface{}, name string) []string {
+func collectTags(img config.ImageConfig, configSet map[string]interface{}, name string) ([]string, error) {
 	tags, err := templateTags(img.Tags, configSet)
-	// FIXME: return this error further
-	util.FailOnError(err)
+	if err != nil {
+		return nil, err
+	}
 	if len(tags) > 0 {
 		log.Info().Interface("tags", tags).Msg("Generating")
 	} else {
 		log.Error().Str("image", name).Msg("No 'tags' defined for")
-		log.Error().Msg("Building without 'tags', would just overwrite images in place, which is pointless. Add 'tags' block to continue.")
-		os.Exit(1)
+		return nil, fmt.Errorf("building without 'tags', would just overwrite images in place, which is pointless - add 'tags' block to continue")
 	}
-	return tags
+	return tags, nil
 }
 
 // generates all combinations of variables
@@ -372,7 +376,9 @@ func isIgnoredKey(key string) bool {
 		"prefix",
 		"maintainer",
 		"tag",
+		"tags",
 		"labels",
+		"args",
 		"platforms":
 		return true
 	}
