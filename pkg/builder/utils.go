@@ -2,6 +2,7 @@ package builder
 
 import (
 	"encoding/json"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -53,6 +54,14 @@ func labelsToArgs(labels map[string]string) []string {
 	args := []string{}
 	for k, v := range labels {
 		args = append(args, "--label", k+"="+v)
+	}
+	return args
+}
+
+func argsToArgs(buildArgs map[string]interface{}) []string {
+	args := []string{}
+	for k, v := range buildArgs {
+		args = append(args, "--arg", fmt.Sprintf("%s=%s", k, v))
 	}
 	return args
 }

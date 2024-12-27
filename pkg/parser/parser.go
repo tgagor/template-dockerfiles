@@ -72,6 +72,9 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 			labels := collectOCILabels(configSet)
 			maps.Copy(labels, collectLabels(configSet))
 
+			// Collect build args
+			// buildArgs := collectBuildArgs(configSet)
+
 			var dockerfile string
 			if strings.HasSuffix(dockerfileTemplate, ".tpl") {
 				dockerfile = generateDockerfilePath(dockerfileTemplate, name, configSet)
@@ -189,6 +192,7 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 
 func collectLabels(configSet map[string]interface{}) map[string]string {
 	labels, err := templateLabels(configSet["labels"].(map[string]string), configSet)
+	// FIXME: return this error further
 	util.FailOnError(err)
 	if len(labels) > 0 {
 		log.Info().Interface("labels", labels).Msg("Generating")
@@ -198,6 +202,7 @@ func collectLabels(configSet map[string]interface{}) map[string]string {
 
 func collectTags(img config.ImageConfig, configSet map[string]interface{}, name string) []string {
 	tags, err := templateTags(img.Tags, configSet)
+	// FIXME: return this error further
 	util.FailOnError(err)
 	if len(tags) > 0 {
 		log.Info().Interface("tags", tags).Msg("Generating")
