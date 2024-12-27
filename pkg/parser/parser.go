@@ -70,10 +70,19 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 
 			// Collect labels, starting with global labels, then oci, then per image
 			labels := collectOCILabels(configSet)
-			maps.Copy(labels, collectLabels(configSet))
+			templatedLabels, err := collectLabels(configSet)
+			if err != nil {
+				return err
+			}
+			maps.Copy(labels, templatedLabels)
+			configSet["labels"] = labels
 
 			// Collect build args
-			// buildArgs := collectBuildArgs(configSet)
+			buildArgs, err := collectBuildArgs(configSet)
+			if err != nil {
+				return err
+			}
+			configSet["args"] = buildArgs
 
 			var dockerfile string
 			if strings.HasSuffix(dockerfileTemplate, ".tpl") {
@@ -100,6 +109,7 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 			currentImage := strings.ToLower(strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-"))
 
 			// collect building image commands
+			// FIXME: I should pass templated labels here, maybe I should update configSet
 			buildEngine.Build(dockerfile, currentImage, configSet, filepath.Dir(dockerfileTemplate), flags.Verbose)
 
 			// collect tagging commands to keep order
@@ -190,14 +200,26 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 	return newConfigSet, nil
 }
 
-func collectLabels(configSet map[string]interface{}) map[string]string {
+func collectLabels(configSet map[string]interface{}) (map[string]string, error) {
 	labels, err := templateLabels(configSet["labels"].(map[string]string), configSet)
-	// FIXME: return this error further
-	util.FailOnError(err)
+	if err != nil {
+		return nil, err
+	}
 	if len(labels) > 0 {
 		log.Info().Interface("labels", labels).Msg("Generating")
 	}
-	return labels
+	return labels, nil
+}
+
+func collectBuildArgs(configSet map[string]interface{}) (map[string]string, error) {
+	buildArgs, err := templateLabels(configSet["args"].(map[string]string), configSet)
+	if err != nil {
+		return nil, err
+	}
+	if len(buildArgs) > 0 {
+		log.Info().Interface("buildArgs", buildArgs).Msg("Generating")
+	}
+	return buildArgs, nil
 }
 
 func collectTags(img config.ImageConfig, configSet map[string]interface{}, name string) []string {
