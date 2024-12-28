@@ -1,10 +1,6 @@
 package tests_test
 
 import (
-	// "bytes"
-	// "fmt"
-	// "regexp"
-	// "strings"
 	"os"
 	"testing"
 
@@ -17,15 +13,6 @@ import (
 	"github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/gruntwork-io/terratest/modules/shell"
 )
-
-// var cmd shell.Command
-
-// func TestMain(m *testing.M) {
-
-//     exitVal := m.Run()
-
-//     os.Exit(exitVal)
-// }
 
 func cmd(args ...string) shell.Command {
 	defaultArgs := []string{}
@@ -50,7 +37,7 @@ func TestRunTDVersion(t *testing.T) {
 }
 
 func TestCase1(t *testing.T) {
-	// t.Parallel()
+	t.Parallel()
 
 	cmd := cmd(
 		"--no-color",
@@ -58,7 +45,6 @@ func TestCase1(t *testing.T) {
 		"--tag", "v1.1.1",
 	)
 
-	// returns what I want
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
 	assert.Contains(t, out, "Building image=test-case-1")
@@ -97,12 +83,13 @@ func TestCase2(t *testing.T) {
 		"--verbose",
 	)
 
-	// returns what I want
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
 	assert.Contains(t, out, "Building image=test-case-2")
 	assert.Contains(t, out, "Building image=test-case-2b")
 
+	// FIXME: improve labels verification
+	// not all of them match but should
 	assert.Contains(t, out, "\"maintainer\":\"Tomasz Gągor <tomasz@gagor.pl>\"")
 	assert.Contains(t, out, "\"org.opencontainers.image.authors\":\"Tomasz Gągor <tomasz@gagor.pl>\"")
 	// assert.Contains(t, out, "org.opencontainers.image.branch")
@@ -136,17 +123,16 @@ func TestCase3(t *testing.T) {
 		"--tag", "v3.3.3",
 	)
 
-	// returns what I want
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.NotNil(t, err) // should fail
 	assert.Contains(t, out, "Building image=test-case-3")
 	assert.Contains(t, out, "No 'tags' defined for image=test-case-3")
 	assert.Contains(t, out, "building without 'tags', would just overwrite images in place, which is pointless - add 'tags' block to continue")
 
-	// do not fail
+	// should fail
 	code, err := shell.GetExitCodeForRunCommandError(err)
 	assert.Nil(t, err)
-	assert.NotEqual(t, code, 0) // should fail
+	assert.NotEqual(t, code, 0)
 }
 
 func TestCase4(t *testing.T) {
@@ -159,7 +145,6 @@ func TestCase4(t *testing.T) {
 		"--delete",
 	)
 
-	// returns what I want
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
 	assert.Contains(t, out, "Building image=test-case-4")
@@ -180,7 +165,6 @@ func TestCase5(t *testing.T) {
 		"--delete",
 	)
 
-	// returns what I want
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
 	assert.Contains(t, out, "Building image=test-case-5")
@@ -203,7 +187,6 @@ func TestCase6(t *testing.T) {
 		"--delete",
 	)
 
-	// returns what I want
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
 	assert.Contains(t, out, "Building image=test-case-6")
@@ -225,7 +208,6 @@ func TestCase7(t *testing.T) {
 		"--delete",
 	)
 
-	// returns what I want
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
 	assert.Contains(t, out, "Building image=test-case-7")
@@ -249,7 +231,6 @@ func TestCase8(t *testing.T) {
 		"--delete",
 	)
 
-	// returns what I want
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
 	assert.Contains(t, out, "Building image=test-case-8")
@@ -272,7 +253,6 @@ func TestCase9(t *testing.T) {
 		"--tag", "v9.9.9",
 	)
 
-	// returns what I want
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
 	assert.Contains(t, out, "Building image=test-case-9")
