@@ -152,17 +152,12 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 	newConfigSet["registry"] = cfg.Registry
 	newConfigSet["prefix"] = cfg.Prefix
 	newConfigSet["maintainer"] = cfg.Maintainer
-	newConfigSet["tags"] = []string{}
+	newConfigSet["platforms"] = cfg.GlobalPlatforms
 	newConfigSet["labels"] = map[string]string{}
 	newConfigSet["args"] = map[string]string{}
-	newConfigSet["platforms"] = []string{}
-	maps.Copy(newConfigSet["labels"].(map[string]string), cfg.GlobalLabels)
-	newConfigSet["platforms"] = cfg.GlobalPlatforms
 
 	// then populate image specific values
 	newConfigSet["image"] = imageName
-	maps.Copy(newConfigSet["labels"].(map[string]string), cfg.Images[imageName].Labels)
-	maps.Copy(newConfigSet["args"].(map[string]string), cfg.Images[imageName].Args)
 	if len(cfg.Images[imageName].Platforms) > 0 {
 		newConfigSet["platforms"] = cfg.Images[imageName].Platforms
 	}
@@ -173,10 +168,6 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 			return nil, fmt.Errorf("variable key '%s' is reserved and cannot be used as variable", k)
 		}
 	}
-	maps.Copy(newConfigSet, currentConfigSet)
-
-	// populate flag specific values
-	newConfigSet["tag"] = flag.Tag
 
 	// validate if only allowed platforms are used
 	for _, p := range newConfigSet["platforms"].([]string) {
@@ -185,83 +176,64 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 		}
 	}
 
+	// merge global variables with current set of variables
+	maps.Copy(newConfigSet, currentConfigSet)
+
+	// populate flag specific values
+	newConfigSet["tag"] = flag.Tag
+
 	// Collect all required data
-	if tags, err := collectTags(cfg.Images[imageName], newConfigSet, imageName); err != nil {
+	newConfigSet["tags"] = cfg.Images[imageName].Tags
+	if tags, err := collectTemplatedList("tags", newConfigSet); err != nil {
 		return nil, err
+	} else if len(tags) < 1 {
+		log.Error().Str("image", imageName).Msg("No 'tags' defined for")
+		return nil, fmt.Errorf("building without 'tags', would just overwrite images in place, which is pointless - add 'tags' block to continue")
 	} else {
 		newConfigSet["tags"] = tags
 	}
 
 	// Collect labels, starting with global labels, then oci, then per image
+	maps.Copy(newConfigSet["labels"].(map[string]string), cfg.GlobalLabels)
 	maps.Copy(newConfigSet["labels"].(map[string]string), collectOCILabels(newConfigSet))
-	templatedLabels, err := collectLabels(newConfigSet)
-	if err != nil {
+	if templatedLabels, err := collectTemplatedMap("labels", newConfigSet); err != nil {
 		return nil, err
+	} else {
+		maps.Copy(newConfigSet["labels"].(map[string]string), templatedLabels)
 	}
-	maps.Copy(newConfigSet["labels"].(map[string]string), templatedLabels)
 
 	// Collect build args
-	buildArgs, err := collectBuildArgs(newConfigSet)
-	if err != nil {
+	maps.Copy(newConfigSet["args"].(map[string]string), cfg.Images[imageName].Args)
+	if buildArgs, err := collectTemplatedMap("args", newConfigSet); err != nil {
 		return nil, err
+	} else {
+		maps.Copy(newConfigSet["args"].(map[string]string), buildArgs)
 	}
-	newConfigSet["args"] = buildArgs
 
 	log.Debug().Interface("config set", newConfigSet).Msg("Generated")
 	return newConfigSet, nil
 }
 
-func collectLabels(configSet map[string]interface{}) (map[string]string, error) {
-	labels, err := templateLabels(configSet["labels"].(map[string]string), configSet)
+func collectTemplatedMap(field string, configSet map[string]interface{}) (map[string]string, error) {
+	templated, err := templateMap(configSet[field].(map[string]string), configSet)
 	if err != nil {
 		return nil, err
 	}
-	if len(labels) > 0 {
-		log.Info().Interface("labels", labels).Msg("Generating")
+	if len(templated) > 0 {
+		log.Info().Interface(field, templated).Msg("Generating")
 	}
-	return labels, nil
+	return templated, nil
 }
 
-// func collectLabels(configSet map[string]interface{}) (map[string]string, error) {
-// 	log.Info().Interface("configSet", configSet).Msg("Collecting Labels")
-// 	if len(configSet["labels"].(map[string]string)) > 0 {
-// 		labels, err := templateLabels(configSet["labels"].(map[string]string), configSet)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		if len(labels) > 0 {
-// 			log.Info().Interface("labels", labels).Msg("Generating")
-// 		}
-// 		return labels, nil
-// 	} else {
-// 		return map[string]string{}, nil
-// 	}
-
-// }
-
-func collectBuildArgs(configSet map[string]interface{}) (map[string]string, error) {
-	buildArgs, err := templateLabels(configSet["args"].(map[string]string), configSet)
+func collectTemplatedList(field string, configSet map[string]interface{}) ([]string, error) {
+	templated, err := templateList(configSet[field].([]string), configSet)
 	if err != nil {
 		return nil, err
 	}
-	if len(buildArgs) > 0 {
-		log.Info().Interface("buildArgs", buildArgs).Msg("Generating")
+	if len(templated) > 0 {
+		log.Info().Interface(field, templated).Msg("Generating")
 	}
-	return buildArgs, nil
-}
-
-func collectTags(img config.ImageConfig, configSet map[string]interface{}, name string) ([]string, error) {
-	tags, err := templateTags(img.Tags, configSet)
-	if err != nil {
-		return nil, err
-	}
-	if len(tags) > 0 {
-		log.Info().Interface("tags", tags).Msg("Generating")
-	} else {
-		log.Error().Str("image", name).Msg("No 'tags' defined for")
-		return nil, fmt.Errorf("building without 'tags', would just overwrite images in place, which is pointless - add 'tags' block to continue")
-	}
-	return tags, nil
+	return templated, nil
 }
 
 // generates all combinations of variables
@@ -315,7 +287,7 @@ func getKeys(m map[string]interface{}) []string {
 	return keys
 }
 
-func templateTags(tagTemplates []string, configSet map[string]interface{}) ([]string, error) {
+func templateList(tagTemplates []string, configSet map[string]interface{}) ([]string, error) {
 	var tags []string
 
 	for _, label := range tagTemplates {
@@ -329,7 +301,7 @@ func templateTags(tagTemplates []string, configSet map[string]interface{}) ([]st
 	return tags, nil
 }
 
-func templateLabels(labelTemplates map[string]string, configSet map[string]interface{}) (map[string]string, error) {
+func templateMap(labelTemplates map[string]string, configSet map[string]interface{}) (map[string]string, error) {
 	labels := map[string]string{}
 
 	for label, value := range labelTemplates {
