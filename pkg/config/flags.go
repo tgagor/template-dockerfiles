@@ -5,12 +5,13 @@ type Flags struct {
 	BuildFile    string
 	Delete       bool
 	DryRun       bool
+	Engine       string
+	Image        string
+	NoColor      bool
 	PrintVersion bool
 	Push         bool
 	Squash       bool
 	Tag          string
 	Threads      int
 	Verbose      bool
-	Image        string
-	Engine       string
 }

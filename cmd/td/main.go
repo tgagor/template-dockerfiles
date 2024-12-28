@@ -112,6 +112,7 @@ func init() {
 	// cmd.Flags().BoolVarP(&flags.DryRun, "dry-run", "d", false, "Print actions but don't execute them")
 	cmd.Flags().IntVar(&flags.Threads, "parallel", runtime.NumCPU(), "Specify the number of threads to use, defaults to number of CPUs")
 	cmd.Flags().StringVarP(&flags.Tag, "tag", "t", "", "Tag to use as the image version")
+	cmd.Flags().BoolVar(&flags.NoColor, "no-color", false, "Disable color output")
 	cmd.Flags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Increase verbosity of output")
 	cmd.Flags().BoolVarP(&flags.PrintVersion, "version", "V", false, "Display the application version and exit")
 }
@@ -126,7 +127,7 @@ func initLogger(verbose bool) {
 	// Console writer
 	consoleWriter := zerolog.ConsoleWriter{
 		Out:     colorable.NewColorableStdout(),
-		NoColor: false,
+		NoColor: flags.NoColor,
 	}
 	// Disable timestamps
 	zerolog.TimeFieldFormat = ""
