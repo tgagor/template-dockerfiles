@@ -70,7 +70,7 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 				log.Debug().Str("dockerfile", dockerfile).Msg("Generating temporary")
 
 				// Template Dockerfile
-				if err := templateFile(dockerfileTemplate, dockerfile, configSet); err != nil {
+				if err := TemplateFile(dockerfileTemplate, dockerfile, configSet); err != nil {
 					log.Error().Err(err).Str("dockerfile", dockerfile).Msg("Failed to template Dockerfile")
 					return err
 				}
@@ -291,7 +291,7 @@ func templateList(tagTemplates []string, configSet map[string]interface{}) ([]st
 	var tags []string
 
 	for _, label := range tagTemplates {
-		templated, err := templateString(label, configSet)
+		templated, err := TemplateString(label, configSet)
 		if err != nil {
 			return nil, err
 		}
@@ -305,11 +305,11 @@ func templateMap(labelTemplates map[string]string, configSet map[string]interfac
 	labels := map[string]string{}
 
 	for label, value := range labelTemplates {
-		templatedLabel, err := templateString(label, configSet)
+		templatedLabel, err := TemplateString(label, configSet)
 		if err != nil {
 			return nil, err
 		}
-		templatedValue, err := templateString(value, configSet)
+		templatedValue, err := TemplateString(value, configSet)
 		if err != nil {
 			return nil, err
 		}

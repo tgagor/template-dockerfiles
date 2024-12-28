@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func templateString(pattern string, args map[string]interface{}) (string, error) {
+func TemplateString(pattern string, args map[string]interface{}) (string, error) {
 	var output bytes.Buffer
 	t := template.Must(template.New(pattern).Funcs(sprig.TxtFuncMap()).Parse(pattern))
 	if err := t.Execute(&output, args); err != nil {
@@ -20,7 +20,7 @@ func templateString(pattern string, args map[string]interface{}) (string, error)
 	return output.String(), nil
 }
 
-func templateFile(templateFile string, destinationFile string, args map[string]interface{}) error {
+func TemplateFile(templateFile string, destinationFile string, args map[string]interface{}) error {
 	t := template.Must(
 		template.New(filepath.Base(templateFile)).Funcs(sprig.TxtFuncMap()).ParseFiles(templateFile),
 	)
