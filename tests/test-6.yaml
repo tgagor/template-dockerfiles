@@ -4,7 +4,7 @@ platforms:
   - linux/arm64
 
 images:
-  test-case-5:
+  test-case-6:
     # white characters at beginning and end of labels and tags should be trimmed
     dockerfile: mutliplatform-Dockerfile.tpl
     variables:

@@ -49,7 +49,7 @@ func TestRunTDVersion(t *testing.T) {
 	assert.Equal(t, code, 0)
 }
 
-func TestCase1GenerateFiles(t *testing.T) {
+func TestCase1(t *testing.T) {
 	// t.Parallel()
 
 	cmd := cmd(
@@ -120,6 +120,174 @@ func TestCase2(t *testing.T) {
 	assert.Contains(t, out, "Removing temporary file=test-case-2-alpine-3.20.Dockerfile")
 	assert.Contains(t, out, "Removing temporary file=test-case-2-alpine-3.19.Dockerfile")
 	assert.Contains(t, out, "Removing temporary file=test-case-2-alpine-3.18.Dockerfile")
+
+	// do not fail
+	code, err := shell.GetExitCodeForRunCommandError(err)
+	assert.Nil(t, err)
+	assert.Equal(t, code, 0)
+}
+
+func TestCase3(t *testing.T) {
+	t.Parallel()
+
+	cmd := cmd(
+		"--no-color",
+		"--config", "test-3.yaml",
+		"--tag", "v3.3.3",
+	)
+
+	// returns what I want
+	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	assert.NotNil(t, err) // should fail
+	assert.Contains(t, out, "Building image=test-case-3")
+	assert.Contains(t, out, "No 'tags' defined for image=test-case-3")
+	assert.Contains(t, out, "building without 'tags', would just overwrite images in place, which is pointless - add 'tags' block to continue")
+
+	// do not fail
+	code, err := shell.GetExitCodeForRunCommandError(err)
+	assert.Nil(t, err)
+	assert.NotEqual(t, code, 0) // should fail
+}
+
+func TestCase4(t *testing.T) {
+	t.Parallel()
+
+	cmd := cmd(
+		"--no-color",
+		"--config", "test-4.yaml",
+		"--tag", "v4.4.4",
+		"--delete",
+	)
+
+	// returns what I want
+	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	assert.Nil(t, err)
+	assert.Contains(t, out, "Building image=test-case-4")
+
+	// do not fail
+	code, err := shell.GetExitCodeForRunCommandError(err)
+	assert.Nil(t, err)
+	assert.Equal(t, code, 0)
+}
+
+func TestCase5(t *testing.T) {
+	t.Parallel()
+
+	cmd := cmd(
+		"--no-color",
+		"--config", "test-5.yaml",
+		"--tag", "v5.5.5",
+		"--delete",
+	)
+
+	// returns what I want
+	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	assert.Nil(t, err)
+	assert.Contains(t, out, "Building image=test-case-5")
+	assert.Contains(t, out, "Generating tags=[\"whatever\"]")
+	// FIXME: "ugly:label" is not generated
+
+	// do not fail
+	code, err := shell.GetExitCodeForRunCommandError(err)
+	assert.Nil(t, err)
+	assert.Equal(t, code, 0)
+}
+
+func TestCase6(t *testing.T) {
+	t.Parallel()
+
+	cmd := cmd(
+		"--no-color",
+		"--config", "test-6.yaml",
+		"--tag", "v6.6.6",
+		"--delete",
+	)
+
+	// returns what I want
+	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	assert.Nil(t, err)
+	assert.Contains(t, out, "Building image=test-case-6")
+	// FIXME: should fail with default builder and propose buildx
+	// FIXME: should pass with buildx
+
+	// do not fail
+	code, err := shell.GetExitCodeForRunCommandError(err)
+	assert.Nil(t, err)
+	assert.Equal(t, code, 0)
+}
+
+func TestCase7(t *testing.T) {
+	t.Parallel()
+
+	cmd := cmd(
+		"--no-color",
+		"--config", "test-7.yaml",
+		"--delete",
+	)
+
+	// returns what I want
+	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	assert.Nil(t, err)
+	assert.Contains(t, out, "Building image=test-case-7")
+	// FIXME: tags are wrongly generated
+	// we have Generating tags=["normal-3.20-UTC"]
+	// but "crazy" variable is not populated, so I have conflicts
+
+	// do not fail
+	code, err := shell.GetExitCodeForRunCommandError(err)
+	assert.Nil(t, err)
+	assert.Equal(t, code, 0)
+}
+
+func TestCase8(t *testing.T) {
+	t.Parallel()
+
+	cmd := cmd(
+		"--no-color",
+		"--config", "test-8.yaml",
+		"--tag", "v8.8.8",
+		"--delete",
+	)
+
+	// returns what I want
+	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	assert.Nil(t, err)
+	assert.Contains(t, out, "Building image=test-case-8")
+	assert.Contains(t, out, "Skipping excluded config set=")
+
+	// FIXME: verify that excludes really work on specific cases
+
+	// do not fail
+	code, err := shell.GetExitCodeForRunCommandError(err)
+	assert.Nil(t, err)
+	assert.Equal(t, code, 0)
+}
+
+func TestCase9(t *testing.T) {
+	t.Parallel()
+
+	cmd := cmd(
+		"--no-color",
+		"--config", "test-9.yaml",
+		"--tag", "v9.9.9",
+	)
+
+	// returns what I want
+	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	assert.Nil(t, err)
+	assert.Contains(t, out, "Building image=test-case-9")
+
+	// should generage args
+	assert.Contains(t, out, "Generating args={\"BASEIMAGE\":\"3.20\",\"TIMEZONE\":\"UTC\"}")
+	assert.Contains(t, out, "Generating args={\"BASEIMAGE\":\"3.20\",\"TIMEZONE\":\"EST\"}")
+	assert.Contains(t, out, "Generating args={\"BASEIMAGE\":\"3.21\",\"TIMEZONE\":\"UTC\"}")
+	assert.Contains(t, out, "Generating args={\"BASEIMAGE\":\"3.21\",\"TIMEZONE\":\"EST\"}")
+
+	// should not create temporary Dockerfiles
+	assert.False(t, files.FileExists("test-case-9-alpine-3.20-timezone-EST.Dockerfile"))
+	assert.False(t, files.FileExists("test-case-9-alpine-3.20-timezone-UTC.Dockerfile"))
+	assert.False(t, files.FileExists("test-case-9-alpine-3.21-timezone-EST.Dockerfile"))
+	assert.False(t, files.FileExists("test-case-9-alpine-3.21-timezone-UTC.Dockerfile"))
 
 	// do not fail
 	code, err := shell.GetExitCodeForRunCommandError(err)

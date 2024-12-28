@@ -60,7 +60,7 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 
 			// skip excluded config sets
 			if isExcluded(configSet, img.Excludes) {
-				log.Debug().Interface("config set", configSet).Interface("excludes", img.Excludes).Msg("Skipping excluded")
+				log.Warn().Interface("config set", configSet).Interface("excludes", img.Excludes).Msg("Skipping excluded")
 				continue
 			}
 
