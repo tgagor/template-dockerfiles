@@ -162,6 +162,7 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 	// then populate image specific values
 	newConfigSet["image"] = imageName
 	maps.Copy(newConfigSet["labels"].(map[string]string), cfg.Images[imageName].Labels)
+	maps.Copy(newConfigSet["args"].(map[string]string), cfg.Images[imageName].Args)
 	if len(cfg.Images[imageName].Platforms) > 0 {
 		newConfigSet["platforms"] = cfg.Images[imageName].Platforms
 	}
@@ -220,6 +221,23 @@ func collectLabels(configSet map[string]interface{}) (map[string]string, error) 
 	}
 	return labels, nil
 }
+
+// func collectLabels(configSet map[string]interface{}) (map[string]string, error) {
+// 	log.Info().Interface("configSet", configSet).Msg("Collecting Labels")
+// 	if len(configSet["labels"].(map[string]string)) > 0 {
+// 		labels, err := templateLabels(configSet["labels"].(map[string]string), configSet)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		if len(labels) > 0 {
+// 			log.Info().Interface("labels", labels).Msg("Generating")
+// 		}
+// 		return labels, nil
+// 	} else {
+// 		return map[string]string{}, nil
+// 	}
+
+// }
 
 func collectBuildArgs(configSet map[string]interface{}) (map[string]string, error) {
 	buildArgs, err := templateLabels(configSet["args"].(map[string]string), configSet)

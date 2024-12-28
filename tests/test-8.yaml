@@ -1,5 +1,5 @@
 images:
-  tomcat:
+  test-case-8:
     dockerfile: tomcat-Dockerfile.tpl
     variables:
       alpine:

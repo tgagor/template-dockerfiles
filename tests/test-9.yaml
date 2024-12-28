@@ -1,0 +1,19 @@
+---
+# no maintainer, registry or prefix
+# just to ensure it would work correctly without them
+
+images:
+  test-case-9:
+    dockerfile: Dockerfile
+    variables:
+      alpine:
+        - "3.20"
+        - "3.21"
+      timezone:
+        - UTC
+        - EST
+    args:
+      BASEIMAGE: "{{ .alpine }}"
+      TIMEZONE: "{{ .timezone }}"
+    tags:
+      - test-case-9
