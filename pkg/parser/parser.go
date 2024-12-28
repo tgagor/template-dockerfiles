@@ -183,8 +183,7 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 	newConfigSet["tag"] = flag.Tag
 
 	// Collect all required data
-	newConfigSet["tags"] = cfg.Images[imageName].Tags
-	if tags, err := collectTemplatedList("tags", newConfigSet); err != nil {
+	if tags, err := collectTemplatedList(cfg.Images[imageName].Tags, newConfigSet); err != nil {
 		return nil, err
 	} else if len(tags) < 1 {
 		log.Error().Str("image", imageName).Msg("No 'tags' defined for")
@@ -194,17 +193,18 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 	}
 
 	// Collect labels, starting with global labels, then oci, then per image
-	maps.Copy(newConfigSet["labels"].(map[string]string), cfg.GlobalLabels)
-	maps.Copy(newConfigSet["labels"].(map[string]string), collectOCILabels(newConfigSet))
-	if templatedLabels, err := collectTemplatedMap("labels", newConfigSet); err != nil {
+	labels := map[string]string{}
+	maps.Copy(labels, cfg.GlobalLabels)
+	maps.Copy(labels, collectOCILabels(newConfigSet))
+	if templatedLabels, err := collectTemplatedMap(cfg.Images[imageName].Labels, newConfigSet); err != nil {
 		return nil, err
 	} else {
-		maps.Copy(newConfigSet["labels"].(map[string]string), templatedLabels)
+		maps.Copy(labels, templatedLabels)
 	}
+	newConfigSet["labels"] = labels
 
 	// Collect build args
-	maps.Copy(newConfigSet["args"].(map[string]string), cfg.Images[imageName].Args)
-	if buildArgs, err := collectTemplatedMap("args", newConfigSet); err != nil {
+	if buildArgs, err := collectTemplatedMap(cfg.Images[imageName].Args, newConfigSet); err != nil {
 		return nil, err
 	} else {
 		maps.Copy(newConfigSet["args"].(map[string]string), buildArgs)
@@ -214,24 +214,24 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 	return newConfigSet, nil
 }
 
-func collectTemplatedMap(field string, configSet map[string]interface{}) (map[string]string, error) {
-	templated, err := templateMap(configSet[field].(map[string]string), configSet)
+func collectTemplatedMap(source map[string]string, configSet map[string]interface{}) (map[string]string, error) {
+	templated, err := templateMap(source, configSet)
 	if err != nil {
 		return nil, err
 	}
 	if len(templated) > 0 {
-		log.Info().Interface(field, templated).Msg("Generating")
+		log.Debug().Interface("source", source).Interface("templated", templated).Msg("Templating map")
 	}
 	return templated, nil
 }
 
-func collectTemplatedList(field string, configSet map[string]interface{}) ([]string, error) {
-	templated, err := templateList(configSet[field].([]string), configSet)
+func collectTemplatedList(source []string, configSet map[string]interface{}) ([]string, error) {
+	templated, err := templateList(source, configSet)
 	if err != nil {
 		return nil, err
 	}
 	if len(templated) > 0 {
-		log.Info().Interface(field, templated).Msg("Generating")
+		log.Debug().Interface("source", source).Interface("templated", templated).Msg("Templating list")
 	}
 	return templated, nil
 }

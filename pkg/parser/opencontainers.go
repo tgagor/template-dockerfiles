@@ -45,16 +45,6 @@ func collectOCILabels(cfg map[string]interface{}) map[string]string {
 	return labels
 }
 
-// func labelsToArgs(labels map[string]string) []string {
-// 	args := []string{}
-
-// 	for k, v := range labels {
-// 		args = append(args, "--label", fmt.Sprintf("%s=%s", k, v))
-// 	}
-
-// 	return args
-// }
-
 func readGitRepo(path string) (originURL string, commitHex string, branchName string, err error) {
 	// Open the local git repository
 	repo, err := git.PlainOpen(path)

@@ -23,7 +23,7 @@ type DockerInspect []struct {
 	} `json:"Config"`
 }
 
-func inspectImage(image string) (DockerInspect, error) {
+func InspectImage(image string) (DockerInspect, error) {
 	out, err := cmd.New("docker").Arg("inspect").Arg("--format").Arg("json").Arg(image).Output()
 	if err != nil {
 		return nil, err

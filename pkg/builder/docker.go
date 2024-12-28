@@ -86,7 +86,7 @@ func (b *DockerBuilder) Squash(imageName string, verbose bool) {
 		SetVerbose(verbose)
 	b.squashRunImages.AddTask(runItFirst)
 
-	imgMetadata, err := inspectImage(imageName)
+	imgMetadata, err := InspectImage(imageName)
 	util.FailOnError(err, "Couldn't inspect Docker image.")
 	log.Debug().Interface("data", imgMetadata).Msg("Docker inspect result")
 	b.imageSizesBefore[imageName] = imgMetadata[0].Size
@@ -192,7 +192,7 @@ func (b *DockerBuilder) RunSquashing() error {
 
 	for imageName, sizeBefore := range b.imageSizesBefore {
 		log.Debug().Str("image", imageName).Uint64("sizeBefore", sizeBefore).Msg("Squashing")
-		imgMetadata, err := inspectImage(imageName)
+		imgMetadata, err := InspectImage(imageName)
 		if err != nil {
 			return err
 		}
