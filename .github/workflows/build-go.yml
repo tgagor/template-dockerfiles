@@ -113,11 +113,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: td-linux-amd64
-          path: ./bin/td
+          path: ./bin
 
       - name: Run Unit Tests
         run: |
-          ls -laR
+          mv ./bin/td-linux-amd64 ./bin/td
           chmod +x ./bin/td
           go test -v  ./...
 
