@@ -1,17 +1,17 @@
 package parser_test
 
 import (
-	"io"
-	"log"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/tgagor/template-dockerfiles/pkg/parser"
 )
 
 // disable logging as it's trashing test's output
 func TestMain(m *testing.M) {
-	log.SetOutput(io.Discard)
+	// log.SetOutput(io.Discard)
+	zerolog.SetGlobalLevel(zerolog.ErrorLevel)
 	m.Run()
 }
 
