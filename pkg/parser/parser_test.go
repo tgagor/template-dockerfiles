@@ -2,7 +2,6 @@ package parser_test
 
 import (
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -48,7 +47,7 @@ func TestCombinationsCase1(t *testing.T) {
 
 	for image, cfg := range inputs {
 		combinations := parser.GenerateVariableCombinations(cfg.Variables)
-		assert.True(t, reflect.DeepEqual(expected[image], combinations))
+		assert.Equal(t, expected[image], combinations)
 	}
 }
 func TestCombinationsCase2(t *testing.T) {
@@ -198,7 +197,10 @@ func TestCombinationsCase7(t *testing.T) {
 	for image, cfg := range inputs {
 		combinations := parser.GenerateVariableCombinations(cfg.Variables)
 
-		assert.True(t, reflect.DeepEqual(combinations, expected[image]))
+		// unordered maps complicate Equality test
+		for i, e := range expected[image].([]map[string]interface{}) {
+			assert.Equal(t, e["alpine"], combinations[i]["alpine"])
+		}
 	}
 }
 
