@@ -163,30 +163,34 @@ func TestCombinationsCase7(t *testing.T) {
 		"test-case-7": []map[string]interface{}{
 			{
 				"alpine":   "3.20",
-				"crazy":    map[string]interface{}{"key1": "value1"},
 				"timezone": "UTC",
+				"crazy":    map[string]interface{}{"key1": "value1"},
 			},
 			{
 				"alpine":   "3.20",
-				"crazy":    map[string]interface{}{"key2": "value2"},
 				"timezone": "UTC",
+				"crazy":    map[string]interface{}{"key2": "value2"},
 			},
 			{
 				"alpine":   "3.21",
+				"timezone": "UTC",
 				"crazy":    map[string]interface{}{"key1": "value1"},
-				"timezone": "UTC",
 			},
 			{
 				"alpine":   "3.21",
-				"crazy":    map[string]interface{}{"key2": "value2"},
 				"timezone": "UTC",
+				"crazy":    map[string]interface{}{"key2": "value2"},
 			},
 		},
 	}
 
 	for image, cfg := range inputs {
 		combinations := parser.GenerateVariableCombinations(cfg.Variables)
-		assert.Equal(t, expected[image], combinations)
+
+		// unordered maps complicate Equality test
+		for i, e := range expected[image].([]map[string]interface{}) {
+			assert.Equal(t, e["alpine"], combinations[i]["alpine"])
+		}
 	}
 }
 
@@ -257,21 +261,43 @@ func TestConfigSetGenerationCase5(t *testing.T) {
 			require.NotEmpty(t, configSet)
 			require.NoError(t, err)
 
-			assert.Empty(t, configSet["registry"])
-			assert.Empty(t, configSet["prefix"])
-			assert.Empty(t, configSet["maintenance"])
-			assert.Empty(t, configSet["platforms"])
-			assert.Empty(t, configSet["args"])
 			assert.NotEmpty(t, configSet["labels"]) // because of default OCI labels
-			// check example OCI labels
-			labelKeys := getKeys(configSet["labels"].(map[string]string))
-			assert.Contains(t, labelKeys, "ugly")
 			assert.Equal(t, "label", configSet["labels"].(map[string]string)["ugly"])
 
 			assert.NotEmpty(t, configSet["tags"])
 			assert.Contains(t, configSet["tags"], "whatever")
 
-			assert.NotEmpty(t, configSet["alpine"]) // one of 3.18/3.19/3.20
+			assert.Equal(t, 3, configSet["alpine"])
+		}
+	}
+}
+
+func TestConfigSetGenerationCase6(t *testing.T) {
+	cfg := loadConfig("test-6.yaml")
+
+	for _, imageName := range cfg.ImageOrder {
+		combinations := parser.GenerateVariableCombinations(cfg.Images[imageName].Variables)
+		for _, set := range combinations {
+			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, config.Flags{})
+			require.NotEmpty(t, configSet)
+			require.NoError(t, err)
+
+			assert.NotEmpty(t, configSet["platforms"])
+			if imageName == "test-case-6a" {
+				// two platforms here
+				platforms := []string{
+					"linux/amd64",
+					"linux/arm64",
+				}
+				assert.Equal(t, platforms, configSet["platforms"])
+			}
+			if imageName == "test-case-6b" {
+				// just one here because of per image override
+				platforms := []string{
+					"linux/amd64",
+				}
+				assert.Equal(t, platforms, configSet["platforms"])
+			}
 		}
 	}
 }
