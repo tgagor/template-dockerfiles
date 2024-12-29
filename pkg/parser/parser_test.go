@@ -48,7 +48,7 @@ func TestCombinationsCase1(t *testing.T) {
 
 	for image, cfg := range inputs {
 		combinations := parser.GenerateVariableCombinations(cfg.Variables)
-		assert.Equal(t, expected[image], combinations)
+		assert.True(t, reflect.DeepEqual(expected[image], combinations))
 	}
 }
 func TestCombinationsCase2(t *testing.T) {
