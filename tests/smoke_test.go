@@ -111,7 +111,6 @@ func TestCase2(t *testing.T) {
 	assert.Contains(t, out, "Building image=test-case-2")
 	assert.Contains(t, out, "Building image=test-case-2b")
 
-	// FIXME: improve labels verification
 	// not all of them match but should
 	assert.Contains(t, out, "\"maintainer\":\"Tomasz Gągor <tomasz@gagor.pl>\"")
 	assert.Contains(t, out, "\"org.opencontainers.image.authors\":\"Tomasz Gągor <tomasz@gagor.pl>\"")

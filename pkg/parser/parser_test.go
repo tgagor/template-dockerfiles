@@ -265,6 +265,44 @@ func TestConfigSetGenerationCase1(t *testing.T) {
 	}
 }
 
+func TestConfigSetGenerationCase2(t *testing.T) {
+	t.Parallel()
+
+	cfg := loadConfig("test-2.yaml")
+
+	for _, imageName := range cfg.ImageOrder {
+		combinations := parser.GenerateVariableCombinations(cfg.Images[imageName].Variables)
+		for _, set := range combinations {
+			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, config.Flags{})
+			require.NotEmpty(t, configSet)
+			require.NoError(t, err)
+
+			// check if global labels are populated everywhere
+			assert.NotEmpty(t, configSet["labels"])
+			labelKeys := getKeys(configSet["labels"].(map[string]string))
+			assert.Contains(t, labelKeys, "org.opencontainers.image.created")
+			assert.Contains(t, labelKeys, "org.opencontainers.image.vendor")
+			assert.Contains(t, labelKeys, "org.opencontainers.image.licenses")
+			assert.Contains(t, labelKeys, "org.opencontainers.image.description")
+
+			// per image labels should only be where added
+			if imageName == "test-case-2" {
+				assert.Contains(t, labelKeys, "org.opencontainers.image.url")
+				assert.Contains(t, labelKeys, "org.opencontainers.image.documentation")
+				assert.Contains(t, labelKeys, "org.opencontainers.image.title")
+				assert.Contains(t, labelKeys, "org.opencontainers.image.description")
+				assert.Contains(t, labelKeys, "org.opencontainers.image.test-case-2.name")
+			} else {
+				assert.NotContains(t, labelKeys, "org.opencontainers.image.url")
+				assert.NotContains(t, labelKeys, "org.opencontainers.image.documentation")
+				assert.NotContains(t, labelKeys, "org.opencontainers.image.title")
+				assert.NotContains(t, labelKeys, "org.opencontainers.image.test-case-2.name")
+			}
+
+		}
+	}
+}
+
 func TestConfigSetGenerationCase5(t *testing.T) {
 	t.Parallel()
 
