@@ -200,6 +200,8 @@ func TestCombinationsCase7(t *testing.T) {
 		// unordered maps complicate Equality test
 		for i, e := range expected[image].([]map[string]interface{}) {
 			assert.Equal(t, e["alpine"], combinations[i]["alpine"])
+			assert.Equal(t, e["timezone"], combinations[i]["timezone"])
+			assert.Equal(t, e["crazy"], combinations[i]["crazy"])
 		}
 	}
 }
@@ -334,7 +336,7 @@ func TestConfigSetGenerationCase6(t *testing.T) {
 	for _, imageName := range cfg.ImageOrder {
 		combinations := parser.GenerateVariableCombinations(cfg.Images[imageName].Variables)
 		for _, set := range combinations {
-			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, config.Flags{})
+			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, config.Flags{Engine: "buildx"})
 			require.NotEmpty(t, configSet)
 			require.NoError(t, err)
 
@@ -354,6 +356,20 @@ func TestConfigSetGenerationCase6(t *testing.T) {
 				}
 				assert.Equal(t, platforms, configSet["platforms"])
 			}
+		}
+	}
+}
+func TestConfigSetGenerationCase6FailWithBadEngine(t *testing.T) {
+	t.Parallel()
+
+	cfg := loadConfig("test-6.yaml")
+
+	for _, imageName := range cfg.ImageOrder {
+		combinations := parser.GenerateVariableCombinations(cfg.Images[imageName].Variables)
+		for _, set := range combinations {
+			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, config.Flags{})
+			require.Error(t, err)
+			require.Empty(t, configSet)
 		}
 	}
 }
