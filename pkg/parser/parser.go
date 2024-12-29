@@ -49,10 +49,10 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 		buildEngine.SetThreads(flags.Threads)
 		buildEngine.SetDryRun(!flags.Build)
 
-		combinations := generateVariableCombinations(img.Variables)
+		combinations := GenerateVariableCombinations(img.Variables)
 		for _, rawConfigSet := range combinations {
 			log.Info().Str("image", name).Msg("Building")
-			configSet, err := generateConfigSet(name, cfg, rawConfigSet, flags)
+			configSet, err := GenerateConfigSet(name, cfg, rawConfigSet, flags)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to generate config set")
 				return err
@@ -145,7 +145,7 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 	return nil
 }
 
-func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet map[string]interface{}, flag config.Flags) (map[string]interface{}, error) {
+func GenerateConfigSet(imageName string, cfg *config.Config, currentConfigSet map[string]interface{}, flag config.Flags) (map[string]interface{}, error) {
 	newConfigSet := make(map[string]interface{})
 
 	// first populate global values
@@ -164,7 +164,7 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 
 	// check if users don't try to override reserved keys
 	for k := range currentConfigSet {
-		if isIgnoredKey(k) {
+		if isReservedKey(k) {
 			return nil, fmt.Errorf("variable key '%s' is reserved and cannot be used as variable", k)
 		}
 	}
@@ -215,7 +215,7 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 }
 
 // generates all combinations of variables
-func generateVariableCombinations(variables map[string]interface{}) []map[string]interface{} {
+func GenerateVariableCombinations(variables map[string]interface{}) []map[string]interface{} {
 	var combinations []map[string]interface{}
 
 	// Helper function to recursively generate combinations
@@ -267,7 +267,7 @@ func getKeys(m map[string]interface{}) []string {
 
 func sanitizeForFileName(input string) string {
 	// Replace any character that is not a letter, number, or safe symbol (-, _) with an underscore
-	// FIXME: This can actually result in collisions if someones uses a lot of symbols in variables
+	// FIXME: This can actually result in collisions if someone uses a lot of symbols in variables
 	// 		  But I didn't face it yet, maybe it's not a problem at all
 	reg := regexp.MustCompile(`[^a-zA-Z0-9-_\.]+`)
 	return reg.ReplaceAllString(input, "_")
@@ -277,7 +277,7 @@ func sanitizeForFileName(input string) string {
 // ERROR: invalid tag "test-case-7-alpine-3.21-crazy-map_key2_value2_-timezone-utc": invalid reference format
 func sanitizeForTag(input string) string {
 	// Replace any character that is not a letter, number, or safe symbol (-, _) with an underscore
-	// FIXME: This can actually result in collisions if someones uses a lot of symbols in variables
+	// FIXME: This can actually result in collisions if someone uses a lot of symbols in variables
 	// 		  But I didn't face it yet, maybe it's not a problem at all
 	reg := regexp.MustCompile(`[^a-zA-Z0-9-_\.]+`)
 	return strings.Trim(reg.ReplaceAllString(input, "-"), "-")
@@ -286,7 +286,7 @@ func sanitizeForTag(input string) string {
 func generateCombinationString(configSet map[string]interface{}) string {
 	var parts []string
 	for k, v := range configSet {
-		if !isIgnoredKey(k) {
+		if !isReservedKey(k) {
 			// Apply sanitization to both key and value
 			safeKey := sanitizeForTag(k)
 			safeValue := sanitizeForTag(fmt.Sprintf("%v", v))
@@ -308,7 +308,7 @@ func generateImageName(registry string, prefix string, name string) string {
 	return strings.ToLower(path.Join(registry, prefix, name))
 }
 
-func isIgnoredKey(key string) bool {
+func isReservedKey(key string) bool {
 	switch key {
 	case
 		"image",
