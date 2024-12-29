@@ -183,7 +183,7 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 	newConfigSet["tag"] = flag.Tag
 
 	// Collect all required data
-	if tags, err := collectTemplatedList(cfg.Images[imageName].Tags, newConfigSet); err != nil {
+	if tags, err := TemplateList(cfg.Images[imageName].Tags, newConfigSet); err != nil {
 		return nil, err
 	} else if len(tags) < 1 {
 		log.Error().Str("image", imageName).Msg("No 'tags' defined for")
@@ -196,7 +196,7 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 	labels := map[string]string{}
 	maps.Copy(labels, cfg.GlobalLabels)
 	maps.Copy(labels, collectOCILabels(newConfigSet))
-	if templatedLabels, err := collectTemplatedMap(cfg.Images[imageName].Labels, newConfigSet); err != nil {
+	if templatedLabels, err := TemplateMap(cfg.Images[imageName].Labels, newConfigSet); err != nil {
 		return nil, err
 	} else {
 		maps.Copy(labels, templatedLabels)
@@ -204,7 +204,7 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 	newConfigSet["labels"] = labels
 
 	// Collect build args
-	if buildArgs, err := collectTemplatedMap(cfg.Images[imageName].Args, newConfigSet); err != nil {
+	if buildArgs, err := TemplateMap(cfg.Images[imageName].Args, newConfigSet); err != nil {
 		return nil, err
 	} else {
 		maps.Copy(newConfigSet["args"].(map[string]string), buildArgs)
@@ -212,28 +212,6 @@ func generateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 
 	log.Debug().Interface("config set", newConfigSet).Msg("Generated")
 	return newConfigSet, nil
-}
-
-func collectTemplatedMap(source map[string]string, configSet map[string]interface{}) (map[string]string, error) {
-	templated, err := templateMap(source, configSet)
-	if err != nil {
-		return nil, err
-	}
-	if len(templated) > 0 {
-		log.Debug().Interface("source", source).Interface("templated", templated).Msg("Templating map")
-	}
-	return templated, nil
-}
-
-func collectTemplatedList(source []string, configSet map[string]interface{}) ([]string, error) {
-	templated, err := templateList(source, configSet)
-	if err != nil {
-		return nil, err
-	}
-	if len(templated) > 0 {
-		log.Debug().Interface("source", source).Interface("templated", templated).Msg("Templating list")
-	}
-	return templated, nil
 }
 
 // generates all combinations of variables
@@ -285,40 +263,6 @@ func getKeys(m map[string]interface{}) []string {
 		keys = append(keys, k)
 	}
 	return keys
-}
-
-func templateList(tagTemplates []string, configSet map[string]interface{}) ([]string, error) {
-	var tags []string
-
-	for _, label := range tagTemplates {
-		templated, err := TemplateString(label, configSet)
-		if err != nil {
-			return nil, err
-		}
-		tags = append(tags, strings.Trim(templated, " \n"))
-	}
-
-	return tags, nil
-}
-
-func templateMap(labelTemplates map[string]string, configSet map[string]interface{}) (map[string]string, error) {
-	labels := map[string]string{}
-
-	for label, value := range labelTemplates {
-		templatedLabel, err := TemplateString(label, configSet)
-		if err != nil {
-			return nil, err
-		}
-		templatedValue, err := TemplateString(value, configSet)
-		if err != nil {
-			return nil, err
-		}
-		templatedLabel = strings.Trim(templatedLabel, " \n")
-		templatedValue = strings.Trim(templatedValue, " \n")
-		labels[templatedLabel] = templatedValue
-	}
-
-	return labels, nil
 }
 
 func sanitizeForFileName(input string) string {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
@@ -39,4 +40,46 @@ func TemplateFile(templateFile string, destinationFile string, args map[string]i
 	}
 
 	return nil
+}
+
+func TemplateList(source []string, configSet map[string]interface{}) ([]string, error) {
+	var templated []string
+
+	for _, label := range source {
+		templatedString, err := TemplateString(label, configSet)
+		if err != nil {
+			return nil, err
+		}
+		templated = append(templated, strings.Trim(templatedString, " \n"))
+	}
+
+	if len(templated) > 0 {
+		log.Debug().Interface("source", source).Interface("templated", templated).Msg("Templating list")
+	}
+
+	return templated, nil
+}
+
+func TemplateMap(source map[string]string, configSet map[string]interface{}) (map[string]string, error) {
+	templated := map[string]string{}
+
+	for label, value := range source {
+		templatedLabel, err := TemplateString(label, configSet)
+		if err != nil {
+			return nil, err
+		}
+		templatedValue, err := TemplateString(value, configSet)
+		if err != nil {
+			return nil, err
+		}
+		templatedLabel = strings.Trim(templatedLabel, " \n")
+		templatedValue = strings.Trim(templatedValue, " \n")
+		templated[templatedLabel] = templatedValue
+	}
+
+	if len(templated) > 0 {
+		log.Debug().Interface("source", source).Interface("templated", templated).Msg("Templating map")
+	}
+
+	return templated, nil
 }
