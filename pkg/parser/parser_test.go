@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tgagor/template-dockerfiles/pkg/config"
 	"github.com/tgagor/template-dockerfiles/pkg/parser"
 )
@@ -12,6 +13,14 @@ import (
 func loadConfig(file string) *config.Config {
 	cfg, _ := config.Load(filepath.Join("../../tests", file))
 	return cfg
+}
+
+func getKeys(m map[string]string) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 func TestCombinationsCase1(t *testing.T) {
@@ -210,5 +219,59 @@ func TestCombinationsCase8(t *testing.T) {
 }
 
 func TestConfigSetGenerationCase1(t *testing.T) {
+	cfg := loadConfig("test-1.yaml")
 
+	for _, imageName := range cfg.ImageOrder {
+		combinations := parser.GenerateVariableCombinations(cfg.Images[imageName].Variables)
+		for _, set := range combinations {
+			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, config.Flags{})
+			require.NotEmpty(t, configSet)
+			require.NoError(t, err)
+
+			assert.Empty(t, configSet["registry"])
+			assert.Empty(t, configSet["prefix"])
+			assert.Empty(t, configSet["maintenance"])
+			assert.Empty(t, configSet["platforms"])
+			assert.Empty(t, configSet["args"])
+			assert.NotEmpty(t, configSet["labels"]) // because of default OCI labels
+			// check example OCI labels
+			labelKeys := getKeys(configSet["labels"].(map[string]string))
+			assert.Contains(t, labelKeys, "org.opencontainers.image.created")
+
+			assert.NotEmpty(t, configSet["tags"])
+			assert.Contains(t, configSet["tags"], "test-case-1")
+
+			assert.NotEmpty(t, configSet["alpine"])              // one of 3.18/3.19/3.20
+			assert.Equal(t, "kuku ruku", configSet["multiword"]) // static
+		}
+	}
+}
+
+func TestConfigSetGenerationCase5(t *testing.T) {
+	cfg := loadConfig("test-5.yaml")
+
+	for _, imageName := range cfg.ImageOrder {
+		combinations := parser.GenerateVariableCombinations(cfg.Images[imageName].Variables)
+		for _, set := range combinations {
+			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, config.Flags{})
+			require.NotEmpty(t, configSet)
+			require.NoError(t, err)
+
+			assert.Empty(t, configSet["registry"])
+			assert.Empty(t, configSet["prefix"])
+			assert.Empty(t, configSet["maintenance"])
+			assert.Empty(t, configSet["platforms"])
+			assert.Empty(t, configSet["args"])
+			assert.NotEmpty(t, configSet["labels"]) // because of default OCI labels
+			// check example OCI labels
+			labelKeys := getKeys(configSet["labels"].(map[string]string))
+			assert.Contains(t, labelKeys, "ugly")
+			assert.Equal(t, "label", configSet["labels"].(map[string]string)["ugly"])
+
+			assert.NotEmpty(t, configSet["tags"])
+			assert.Contains(t, configSet["tags"], "whatever")
+
+			assert.NotEmpty(t, configSet["alpine"]) // one of 3.18/3.19/3.20
+		}
+	}
 }
