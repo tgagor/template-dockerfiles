@@ -2,6 +2,7 @@ package parser_test
 
 import (
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,6 +25,8 @@ func getKeys(m map[string]string) []string {
 }
 
 func TestCombinationsCase1(t *testing.T) {
+	t.Parallel()
+
 	inputs := loadConfig("test-1.yaml").Images
 
 	expected := map[string]interface{}{
@@ -49,6 +52,8 @@ func TestCombinationsCase1(t *testing.T) {
 	}
 }
 func TestCombinationsCase2(t *testing.T) {
+	t.Parallel()
+
 	inputs := loadConfig("test-2.yaml").Images
 
 	expected := map[string]interface{}{
@@ -101,6 +106,8 @@ func TestCombinationsCase2(t *testing.T) {
 // }
 
 func TestCombinationsCase4(t *testing.T) {
+	t.Parallel()
+
 	inputs := loadConfig("test-4.yaml").Images
 
 	expected := map[string]interface{}{
@@ -116,6 +123,8 @@ func TestCombinationsCase4(t *testing.T) {
 }
 
 func TestCombinationsCase5(t *testing.T) {
+	t.Parallel()
+
 	inputs := loadConfig("test-5.yaml").Images
 
 	expected := map[string]interface{}{
@@ -157,6 +166,8 @@ func TestCombinationsCase5(t *testing.T) {
 // }
 
 func TestCombinationsCase7(t *testing.T) {
+	t.Parallel()
+
 	inputs := loadConfig("test-7.yaml").Images
 
 	expected := map[string]interface{}{
@@ -187,14 +198,13 @@ func TestCombinationsCase7(t *testing.T) {
 	for image, cfg := range inputs {
 		combinations := parser.GenerateVariableCombinations(cfg.Variables)
 
-		// unordered maps complicate Equality test
-		for i, e := range expected[image].([]map[string]interface{}) {
-			assert.Equal(t, e["alpine"], combinations[i]["alpine"])
-		}
+		assert.True(t, reflect.DeepEqual(combinations, expected[image]))
 	}
 }
 
 func TestCombinationsCase8(t *testing.T) {
+	t.Parallel()
+
 	inputs := loadConfig("test-8.yaml").Images
 
 	excluded := []map[string]interface{}{
@@ -223,6 +233,8 @@ func TestCombinationsCase8(t *testing.T) {
 }
 
 func TestConfigSetGenerationCase1(t *testing.T) {
+	t.Parallel()
+
 	cfg := loadConfig("test-1.yaml")
 
 	for _, imageName := range cfg.ImageOrder {
@@ -252,6 +264,8 @@ func TestConfigSetGenerationCase1(t *testing.T) {
 }
 
 func TestConfigSetGenerationCase5(t *testing.T) {
+	t.Parallel()
+
 	cfg := loadConfig("test-5.yaml")
 
 	for _, imageName := range cfg.ImageOrder {
@@ -273,6 +287,8 @@ func TestConfigSetGenerationCase5(t *testing.T) {
 }
 
 func TestConfigSetGenerationCase6(t *testing.T) {
+	t.Parallel()
+
 	cfg := loadConfig("test-6.yaml")
 
 	for _, imageName := range cfg.ImageOrder {
