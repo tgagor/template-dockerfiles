@@ -88,7 +88,6 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 			currentImage := strings.ToLower(strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-"))
 
 			// collect building image commands
-			// FIXME: I should pass templated labels here, maybe I should update configSet
 			buildEngine.Build(dockerfile, currentImage, configSet, filepath.Dir(dockerfileTemplate), flags.Verbose)
 
 			// collect tagging commands to keep order
