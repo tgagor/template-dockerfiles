@@ -161,7 +161,7 @@ func GenerateConfigSet(imageName string, cfg *config.Config, currentConfigSet ma
 	if len(cfg.Images[imageName].Platforms) > 0 {
 		newConfigSet["platforms"] = cfg.Images[imageName].Platforms
 	}
-	if len(newConfigSet["platforms"].([]string)) > 0 && flag.Engine != "buildx" {
+	if len(newConfigSet["platforms"].([]string)) > 0 && flag.Engine != "buildx" && flag.Build {
 		return nil, fmt.Errorf("engine '%s' do not support multi-platform builds, use 'buildx' instead", flag.Engine)
 	}
 

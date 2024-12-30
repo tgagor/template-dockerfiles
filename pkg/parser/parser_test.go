@@ -367,7 +367,7 @@ func TestConfigSetGenerationCase6FailWithBadEngine(t *testing.T) {
 	for _, imageName := range cfg.ImageOrder {
 		combinations := parser.GenerateVariableCombinations(cfg.Images[imageName].Variables)
 		for _, set := range combinations {
-			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, config.Flags{})
+			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, config.Flags{Build: true})
 			require.Error(t, err)
 			require.Empty(t, configSet)
 		}
