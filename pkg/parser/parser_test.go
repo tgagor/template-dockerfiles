@@ -400,6 +400,7 @@ func TestConfigSetGenerationCase6FailWithBadEngine(t *testing.T) {
 // }
 
 // TODO: I hava a lot of tests for proper config sets generation, but not much for proper tags
+// maybe I should add test for test-8.yaml where a lot of tags are generated
 
 func TestConfigSetGenerationCase9(t *testing.T) {
 	t.Parallel()
