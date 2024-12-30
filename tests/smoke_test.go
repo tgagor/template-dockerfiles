@@ -249,8 +249,6 @@ func TestCase8(t *testing.T) {
 	assert.Contains(t, out, "Building image=test-case-8")
 	assert.Contains(t, out, "Skipping excluded config set=")
 
-	// FIXME: verify that excludes really work on specific cases
-
 	// do not fail
 	code, err := shell.GetExitCodeForRunCommandError(err)
 	assert.Nil(t, err)
