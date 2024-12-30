@@ -200,6 +200,8 @@ func TestCombinationsCase7(t *testing.T) {
 	for image, cfg := range inputs {
 		combinations := parser.GenerateVariableCombinations(cfg.Variables)
 
+		// FIXME: this comparison still fails which makes the whole build unstable
+		// I need to rewrite this
 		less := func(a, b string) bool { return a < b }
 		assert.True(t, cmp.Equal(expected[image], combinations, cmpopts.SortSlices(less), cmpopts.SortMaps(less)))
 	}
