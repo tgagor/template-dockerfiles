@@ -227,9 +227,6 @@ func TestCase7(t *testing.T) {
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
 	assert.Contains(t, out, "Building image=test-case-7")
-	// FIXME: tags are wrongly generated
-	// we have Generating tags=["normal-3.20-UTC"]
-	// but "crazy" variable is not populated, so I have conflicts
 
 	// do not fail
 	code, err := shell.GetExitCodeForRunCommandError(err)
