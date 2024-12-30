@@ -16,7 +16,6 @@ import (
 	"github.com/tgagor/template-dockerfiles/pkg/util"
 )
 
-// TODO: add multi-arch building support
 func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 	for _, name := range cfg.ImageOrder {
 		// Limit building to a single image
