@@ -52,6 +52,7 @@ func TestCombinationsCase1(t *testing.T) {
 		assert.Equal(t, expected[image], combinations)
 	}
 }
+
 func TestCombinationsCase2(t *testing.T) {
 	t.Parallel()
 
@@ -357,6 +358,7 @@ func TestConfigSetGenerationCase6(t *testing.T) {
 		}
 	}
 }
+
 func TestConfigSetGenerationCase6FailWithBadEngine(t *testing.T) {
 	t.Parallel()
 
@@ -371,3 +373,28 @@ func TestConfigSetGenerationCase6FailWithBadEngine(t *testing.T) {
 		}
 	}
 }
+
+// Broken assumptions, I generate all config sets and then filter them in the parser.Run
+// So this one would always fail, as all config sets are available
+// func TestConfigSetGenerationCase8(t *testing.T) {
+// 	t.Parallel()
+
+// 	cfg := loadConfig("test-8.yaml")
+
+// 	for _, imageName := range cfg.ImageOrder {
+// 		combinations := parser.GenerateVariableCombinations(cfg.Images[imageName].Variables)
+// 		for _, set := range combinations {
+// 			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, config.Flags{})
+// 			require.NotEmpty(t, configSet)
+// 			require.NoError(t, err)
+
+// 			if imageName == "test-case-8" {
+// 				fmt.Printf("%v", configSet)
+// 				// check if our excludes do not match something
+// 				assert.Falsef(t, configSet["tomcat"] == "11.0.2" && configSet["java"] == 8, "excluded configuration found!")
+// 				assert.Falsef(t, configSet["tomcat"] == "11.0.2" && configSet["java"] == 11, "excluded configuration found!")
+// 				assert.Falsef(t, configSet["tomcat"] == "10.1.34" && configSet["java"] == 8, "excluded configuration found!")
+// 			}
+// 		}
+// 	}
+// }

@@ -42,6 +42,7 @@ func InspectImage(image string) (DockerInspect, error) {
 	return inspect, nil
 }
 
+// FIXME: this metod is duplicated here and in parser.go
 func sanitizeForFileName(input string) string {
 	// Replace any character that is not a letter, number, or safe symbol (-, _) with an underscore
 	// FIXME: This can actually result in collisions if someones uses a lot of symbols in variables
