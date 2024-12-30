@@ -76,6 +76,8 @@ func (b *DockerBuilder) Build(dockerfile, imageName string, configSet map[string
 }
 
 // TODO: should I add a flag for original image removal?
+//
+//	they're unreferenced after squashing
 func (b *DockerBuilder) Squash(imageName string, verbose bool) {
 	containerName := "run-" + sanitizeForFileName(imageName)
 
