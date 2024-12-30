@@ -4,6 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tgagor/template-dockerfiles/pkg/config"
@@ -197,12 +199,8 @@ func TestCombinationsCase7(t *testing.T) {
 	for image, cfg := range inputs {
 		combinations := parser.GenerateVariableCombinations(cfg.Variables)
 
-		// unordered maps complicate Equality test
-		for i, e := range expected[image].([]map[string]interface{}) {
-			assert.Equal(t, e["alpine"], combinations[i]["alpine"])
-			assert.Equal(t, e["timezone"], combinations[i]["timezone"])
-			assert.Equal(t, e["crazy"], combinations[i]["crazy"])
-		}
+		less := func(a, b string) bool { return a < b }
+		assert.True(t, cmp.Equal(expected[image], combinations, cmpopts.SortSlices(less), cmpopts.SortMaps(less)))
 	}
 }
 
