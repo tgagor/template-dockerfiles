@@ -398,3 +398,24 @@ func TestConfigSetGenerationCase6FailWithBadEngine(t *testing.T) {
 // 		}
 // 	}
 // }
+
+// TODO: I hava a lot of tests for proper config sets generation, but not much for proper tags
+
+func TestConfigSetGenerationCase9(t *testing.T) {
+	t.Parallel()
+
+	cfg := loadConfig("test-9.yaml")
+
+	for _, imageName := range cfg.ImageOrder {
+		combinations := parser.GenerateVariableCombinations(cfg.Images[imageName].Variables)
+		for _, set := range combinations {
+			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, config.Flags{})
+			require.NotEmpty(t, configSet)
+			require.NoError(t, err)
+
+			assert.NotEmpty(t, configSet["args"]) // because of default OCI labels
+			assert.Equal(t, configSet["alpine"], configSet["args"].(map[string]string)["BASEIMAGE"])
+			assert.Equal(t, configSet["timezone"], configSet["args"].(map[string]string)["TIMEZONE"])
+		}
+	}
+}
