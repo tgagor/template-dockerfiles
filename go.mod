@@ -4,7 +4,7 @@ go 1.22.2
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/go-git/go-git/v5 v5.12.0
+	github.com/go-git/go-git/v5 v5.13.0
 	github.com/gruntwork-io/terratest v0.48.1
 	github.com/mattn/go-colorable v0.1.13
 	github.com/rs/zerolog v1.33.0
