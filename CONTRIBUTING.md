@@ -86,3 +86,15 @@ Ideas and wishlist
 
     To improve visibility of tasks in the background.
     Hint: https://github.com/schollz/progressbar
+
+11. **Documentation**: Provide better examples
+
+    Current examples are based on Java images, which are quite heavy and cluttered. Not many would need them, so they might not be interesting.
+    Let try to simplify them, so they could build faster. Additionally let add:
+    - example of Dockerfile without templating, but with `args` - I don't have this now.
+
+12. **Global variables**: There are variables like "OS versions", that you might need to repeat on every single image.
+
+    It's not a lot of work, but if you have 10 images which you would like to provide for 2 different versions of Ubuntu and 3 Alpine, then it could save few lines. I can provide global `variables` field, which should work like `platforms`, so being overridable on per image basis.
+
+    Potentially, it might make sense to allow `excludes` in same way, but I'm not sure how useful they could be.
