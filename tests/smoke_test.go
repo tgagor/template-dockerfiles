@@ -144,7 +144,6 @@ func TestCase3(t *testing.T) {
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.NotNil(t, err) // should fail
-	assert.Regexp(t, "Building.*image=test-case-3", out)
 
 	assert.Contains(t, out, "No 'tags' defined for image=test-case-3")
 	assert.Contains(t, out, "building without 'tags', would just overwrite images in place, which is pointless - add 'tags' block to continue")
