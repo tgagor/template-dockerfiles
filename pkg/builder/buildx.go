@@ -53,7 +53,7 @@ func (b *BuildxBuilder) Build(dockerfile, imageName string, configSet map[string
 	builder.Arg("-f", dockerfile).Arg("-t", imageName).
 		Arg(labelsToArgs(labels)...).
 		Arg(buildArgsToArgs(buildArgs)...).
-		Arg("--load"). // required for multi-platform builds
+		Arg("--output", "type=image"). // required for multi-platform builds
 		Arg(contextDir).SetVerbose(verbose)
 	b.buildTasks.AddTask(builder)
 }
