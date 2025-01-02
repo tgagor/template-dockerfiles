@@ -3,7 +3,6 @@ package parser
 import (
 	"fmt"
 	"maps"
-	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -47,8 +46,7 @@ func Run(workdir string, cfg *config.Config, flags *config.Flags) error {
 
 		err := buildEngine.Init()
 		util.FailOnError(err, "Failed to initialize builder.")
-		buildEngine.SetThreads(flags.Threads)
-		buildEngine.SetDryRun(!flags.Build)
+		buildEngine.SetFlags(flags)
 
 		combinations := GenerateVariableCombinations(rawImg.Variables)
 		for _, rawConfigSet := range combinations {
@@ -58,14 +56,25 @@ func Run(workdir string, cfg *config.Config, flags *config.Flags) error {
 				return err
 			}
 
-			img := image.From(configSet, flags)
-
 			// skip excluded config sets
 			if isExcluded(configSet, rawImg.Excludes) {
 				log.Warn().Interface("config set", configSet).Interface("excludes", rawImg.Excludes).Msg("Skipping excluded")
 				continue
 			}
+
+			img := image.From(configSet, flags)
+			img.SetRegistry(cfg.Registry).
+				SetPrefix(cfg.Prefix).
+				SetMaintainer(cfg.Maintainer).
+				SetPlatforms(cfg.GlobalPlatforms).
+				AddTag(configSet["tags"].([]string)...)
+
 			log.Info().Str("image", name).Interface("config set", configSet).Msg("Building")
+			// name is required to avoid collisions between images or
+			// when variables are not defined to have actual image name
+			// ERROR: invalid tag "timezone-UTC": repository name must be lowercase
+			currentImage := strings.ToLower(strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-"))
+			img.SetName(currentImage)
 
 			var dockerfile string
 			if strings.HasSuffix(dockerfileTemplate, ".tpl") {
@@ -87,25 +96,15 @@ func Run(workdir string, cfg *config.Config, flags *config.Flags) error {
 			}
 			img.SetDockerfile(dockerfile).SetBuildContextDir(filepath.Dir(dockerfileTemplate))
 
-			// name is required to avoid collisions between images or
-			// when variables are not defined to have actual image name
-			// ERROR: invalid tag "timezone-UTC": repository name must be lowercase
-			currentImage := strings.ToLower(strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-"))
-			img.SetName(currentImage)
-
 			// collect building image commands
-			buildEngine.Build(img, flags)
+			buildEngine.Build(img)
 
-			// collect tagging commands to keep order
-			for _, t := range configSet["tags"].([]string) {
-				taggedImg := generateImageName(cfg.Registry, cfg.Prefix, t)
-				img.AddTag(taggedImg)
-			}
-			buildEngine.Tag(img, flags)
-			buildEngine.Push(img, flags)
+			// schedule tagging and pushing tasks
+			// buildEngine.Tag(img, flags)
+			// buildEngine.Push(img, flags)
 
 			// remove temporary tags
-			buildEngine.Remove(img, flags)
+			// buildEngine.Remove(img, flags)
 
 			// I might not need it, but let's keep it for now
 			images := append(images, img)
@@ -114,32 +113,16 @@ func Run(workdir string, cfg *config.Config, flags *config.Flags) error {
 			}
 		}
 
-		if flags.Build {
-			err := buildEngine.RunBuilding()
-			util.FailOnError(err, "Building failed with error, check error above. Exiting.")
+		if err := buildEngine.Run(); err != nil {
+			log.Error().Err(err).Msg("Building failed with error, check error above. Exiting.")
+			return err
 		}
 
-		// let squash it
-		if flags.Build && flags.Squash {
-			// inspect requires images to be already built, so I need another loop here
-			for _, img := range images {
-				buildEngine.Squash(img, flags)
-			}
-			err := buildEngine.RunSquashing()
-			util.FailOnError(err, "Squashing failed with error, check error above. Exiting.")
-		}
-
-		// continue typical build
-		if flags.Build {
-			err := buildEngine.RunTagging()
-			util.FailOnError(err, "Tagging failed with error, check error above. Exiting.")
-			err = buildEngine.RunCleanup()
-			util.FailOnError(err, "Dropping temporary images failed. Exiting.")
-		}
-		if flags.Push {
-			err := buildEngine.RunPushing()
-			util.FailOnError(err, "Pushing images failed, check error above. Exiting.")
-		}
+		// FIXME: I don't know now how to call it, so I will disable it for now
+		// inspect requires images to be already built, so I need another loop here
+		// for _, img := range images {
+		// 	buildEngine.Squash(img)
+		// }
 
 		// Shutdown the builder
 		err = buildEngine.Shutdown()
@@ -309,10 +292,6 @@ func generateDockerfilePath(dockerFileTemplate string, image string, configSet m
 	dirname := filepath.Dir(dockerFileTemplate)
 	filename := strings.Trim(fmt.Sprintf("%s-%s.Dockerfile", image, generateCombinationString(configSet)), "-")
 	return filepath.Join(dirname, sanitizeForFileName(filename))
-}
-
-func generateImageName(registry string, prefix string, name string) string {
-	return strings.ToLower(path.Join(registry, prefix, name))
 }
 
 func isReservedKey(key string) bool {

@@ -14,6 +14,7 @@ import (
 )
 
 type DockerBuilder struct {
+	flags        *config.Flags
 	buildTasks   *runner.Runner
 	taggingTasks *runner.Runner
 	pushTasks    *runner.Runner
@@ -43,7 +44,13 @@ func (b *DockerBuilder) Init() error {
 	return nil
 }
 
-func (b *DockerBuilder) SetThreads(threads int) {
+func (b *DockerBuilder) SetFlags(flags *config.Flags) {
+	b.flags = flags
+	b.setThreads(flags.Threads)
+	b.setDryRun(!flags.Build)
+}
+
+func (b *DockerBuilder) setThreads(threads int) {
 	b.buildTasks.Threads(threads)
 	// b.tagTasks have to use 1 thread
 	b.pushTasks.Threads(threads)
@@ -54,7 +61,7 @@ func (b *DockerBuilder) SetThreads(threads int) {
 	b.squashImportTarsToImgs.Threads(threads)
 }
 
-func (b *DockerBuilder) SetDryRun(dryRun bool) {
+func (b *DockerBuilder) setDryRun(dryRun bool) {
 	b.buildTasks.DryRun(dryRun)
 	b.taggingTasks.DryRun(dryRun)
 	b.pushTasks.DryRun(dryRun)
@@ -65,7 +72,7 @@ func (b *DockerBuilder) SetDryRun(dryRun bool) {
 	b.squashImportTarsToImgs.DryRun(dryRun)
 }
 
-func (b *DockerBuilder) Build(img *image.Image, flags *config.Flags) {
+func (b *DockerBuilder) Build(img *image.Image) {
 	builder := cmd.New("docker").Arg("build").
 		Arg("-f", img.Dockerfile).
 		Arg("-t", img.Name).
@@ -73,21 +80,21 @@ func (b *DockerBuilder) Build(img *image.Image, flags *config.Flags) {
 		Arg(buildArgsToArgs(img.BuildArgs)...).
 		Arg(img.BuildContextDir).
 		PreInfo("Building " + img.Name).
-		SetVerbose(flags.Verbose)
+		SetVerbose(b.flags.Verbose)
 	b.buildTasks.AddTask(builder)
 }
 
-// TODO: should I add a flag for original image removal?
+// TODO: should I add a flag for original image (before squashing) removal?
 //
 //	they're unreferenced after squashing
-func (b *DockerBuilder) Squash(img *image.Image, flags *config.Flags) {
+func (b *DockerBuilder) Squash(img *image.Image) {
 	containerName := "run-" + sanitizeForFileName(img.Name)
 
 	runItFirst := cmd.New("docker").Arg("run").
 		Arg("--name", containerName).
 		Arg(img.Name).
 		Arg("true").
-		SetVerbose(flags.Verbose)
+		SetVerbose(b.flags.Verbose)
 	b.squashRunImages.AddTask(runItFirst)
 
 	imgMetadata, err := InspectImage(img.Name)
@@ -100,7 +107,7 @@ func (b *DockerBuilder) Squash(img *image.Image, flags *config.Flags) {
 		Arg(containerName).
 		Arg("-o", tmpTarFile).
 		PreInfo(fmt.Sprintf("Squashing %s", img.Name)).
-		SetVerbose(flags.Verbose)
+		SetVerbose(b.flags.Verbose)
 	b.squashExportImages.AddTask(exportIt)
 	b.cleanupTasks.AddTask(cmd.New("docker").Arg("rm").Arg("-f").Arg(containerName))
 
@@ -142,50 +149,84 @@ func (b *DockerBuilder) Squash(img *image.Image, flags *config.Flags) {
 			importIt.Arg("--change", "WORKDIR "+item.Config.WorkingDir)
 		}
 	}
-	importIt.Arg(tmpTarFile).Arg(img.Name).SetVerbose(flags.Verbose)
+	importIt.Arg(tmpTarFile).Arg(img.Name).SetVerbose(b.flags.Verbose)
 	b.squashImportTarsToImgs.AddTask(importIt)
 	b.squashTempoaryTarFiles = append(b.squashTempoaryTarFiles, tmpTarFile)
 
 	// remove interim images
 	oldImgHash := strings.TrimPrefix(imgMetadata[0].Id, "sha256:")[:12]
-	b.Remove(image.New().SetName(oldImgHash), flags)
+	b.Remove(image.New().SetName(oldImgHash))
 }
 
-func (b *DockerBuilder) Tag(img *image.Image, flags *config.Flags) {
+func (b *DockerBuilder) Tag(img *image.Image) {
 	for _, tag := range img.Tags() {
 		tagger := cmd.New("docker").Arg("tag").
 			Arg(img.Name).
 			Arg(tag).
 			PreInfo("Tagging " + tag).
-			SetVerbose(flags.Verbose)
+			SetVerbose(b.flags.Verbose)
 		b.taggingTasks.AddUniq(tagger)
 	}
 }
 
-func (b *DockerBuilder) Push(img *image.Image, flags *config.Flags) {
+func (b *DockerBuilder) Push(img *image.Image) {
 	for _, tag := range img.Tags() {
 		pusher := cmd.New("docker").Arg("push").
 			Arg(tag).
 			PreInfo("Pushing " + tag)
-		if !flags.Verbose {
+		if !b.flags.Verbose {
 			pusher.Arg("--quiet")
 		}
 		b.pushTasks.AddTask(pusher)
 	}
 }
 
-func (b *DockerBuilder) Remove(img *image.Image, flags *config.Flags) {
+func (b *DockerBuilder) Remove(img *image.Image) {
 	remover := cmd.New("docker").Arg("image", "rm", "-f").
 		Arg(img.Name).
-		SetVerbose(flags.Verbose)
+		SetVerbose(b.flags.Verbose)
 	b.cleanupTasks.AddTask(remover)
 }
 
-func (b *DockerBuilder) RunBuilding() error {
-	return b.buildTasks.Run()
+func (b *DockerBuilder) Run() error {
+	if b.flags.Build {
+		if err := b.buildTasks.Run(); err != nil {
+			return err
+		}
+	}
+	if b.flags.Build && b.flags.Squash {
+		if err := b.runSquashing(); err != nil {
+			return err
+		}
+	}
+	if b.flags.Build {
+		if err := b.taggingTasks.Run(); err != nil {
+			return err
+		}
+	}
+	if b.flags.Push {
+		if err := b.pushTasks.Run(); err != nil {
+			return err
+		}
+	}
+	if b.flags.Build {
+		if err := b.cleanupTasks.Run(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func (b *DockerBuilder) RunSquashing() error {
+// func (b *DockerBuilder) runBuilding() error {
+// 	if b.flags.Build {
+// 		return b.buildTasks.Run()
+// 	} else {
+// 		log.Warn().Msg("Skipping building images")
+// 		return nil
+// 	}
+// }
+
+func (b *DockerBuilder) runSquashing() error {
 	defer util.RemoveFile(b.squashTempoaryTarFiles...)
 
 	if err := b.squashRunImages.Run(); err != nil {
@@ -210,15 +251,6 @@ func (b *DockerBuilder) RunSquashing() error {
 	}
 
 	return nil
-}
-func (b *DockerBuilder) RunTagging() error {
-	return b.taggingTasks.Run()
-}
-func (b *DockerBuilder) RunPushing() error {
-	return b.pushTasks.Run()
-}
-func (b *DockerBuilder) RunCleanup() error {
-	return b.cleanupTasks.Run()
 }
 
 func (b *DockerBuilder) Shutdown() error {

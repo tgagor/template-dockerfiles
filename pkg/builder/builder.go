@@ -8,19 +8,20 @@ import (
 type Builder interface {
 	// New(threads int, dryRun bool) *Builder
 	Init() error
-	Build(image *image.Image, flags *config.Flags)
-	Squash(image *image.Image, flags *config.Flags)
-	Tag(image *image.Image, flags *config.Flags)
-	Push(image *image.Image, flags *config.Flags)
-	Remove(image *image.Image, flags *config.Flags)
-	// Run(stage Stage) error
-	SetThreads(threads int)
-	SetDryRun(dryRun bool)
+	SetFlags(flags *config.Flags)
+	Build(image *image.Image)
+	Squash(image *image.Image)
+	// Tag(image *image.Image, flags *config.Flags)
+	// Push(image *image.Image, flags *config.Flags)
+	// Remove(image *image.Image, flags *config.Flags)
+	setThreads(threads int)
+	setDryRun(dryRun bool)
 	Shutdown() error
 
-	RunBuilding() error
-	RunSquashing() error
-	RunTagging() error
-	RunPushing() error
-	RunCleanup() error
+	Run() error
+	// RunBuilding() error
+	// RunSquashing() error
+	// RunTagging() error
+	// RunPushing() error
+	// RunCleanup() error
 }

@@ -14,6 +14,7 @@ type Image struct {
 	Prefix          string
 	Dockerfile      string
 	BuildContextDir string
+	// Variables       map[string]interface{}
 	tags            []string
 	Labels          map[string]string
 	BuildArgs       map[string]string
@@ -47,6 +48,11 @@ func (i *Image) String() string {
 	return i.FullName()
 }
 
+func (i *Image) SetFlags(flags *config.Flags) *Image {
+	i.Flags = flags
+	return i
+}
+
 func (i *Image) SetName(name string) *Image {
 	i.Name = name
 	return i
@@ -63,6 +69,24 @@ func (i *Image) SetRegistry(registry string) *Image {
 
 func (i *Image) SetPrefix(prefix string) *Image {
 	i.Prefix = prefix
+	return i
+}
+
+func (i *Image) SetMaintainer(maintainer string) *Image {
+	if maintainer != "" {
+		i.Labels["maintainer"] = maintainer
+		i.Labels["org.opencontainers.image.authors"] = maintainer
+	} else {
+		delete(i.Labels, "maintainer")
+		delete(i.Labels, "org.opencontainers.image.authors")
+	}
+	return i
+}
+
+func (i *Image) SetPlatforms(platforms []string) *Image {
+	if len(platforms) > 0 {
+		i.Platforms = platforms
+	}
 	return i
 }
 
