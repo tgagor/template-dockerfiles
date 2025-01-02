@@ -50,7 +50,6 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 
 		combinations := GenerateVariableCombinations(img.Variables)
 		for _, rawConfigSet := range combinations {
-			log.Info().Str("image", name).Msg("Building")
 			configSet, err := GenerateConfigSet(name, cfg, rawConfigSet, flags)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to generate config set")
@@ -62,6 +61,7 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 				log.Warn().Interface("config set", configSet).Interface("excludes", img.Excludes).Msg("Skipping excluded")
 				continue
 			}
+			log.Info().Str("image", name).Interface("config set", configSet).Msg("Building")
 
 			var dockerfile string
 			if strings.HasSuffix(dockerfileTemplate, ".tpl") {
