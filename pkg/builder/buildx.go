@@ -1,6 +1,9 @@
 package builder
 
 import (
+	"path"
+	"strings"
+
 	"github.com/rs/zerolog/log"
 	"github.com/tgagor/template-dockerfiles/pkg/cmd"
 	"github.com/tgagor/template-dockerfiles/pkg/runner"
@@ -50,32 +53,44 @@ func (b *BuildxBuilder) Build(dockerfile, imageName string, configSet map[string
 	if len(platforms) > 0 {
 		builder.Arg(platformsToArgs(platforms)...)
 	}
-	builder.Arg("-f", dockerfile).Arg("-t", imageName).
+	builder.Arg("-f", dockerfile).
 		Arg(labelsToArgs(labels)...).
 		Arg(buildArgsToArgs(buildArgs)...).
-		Arg("--output", "type=image"). // required for multi-platform builds
-		Arg(contextDir).SetVerbose(verbose)
+		Arg("--load")
+
+	// collect tagging commands to keep order
+	for _, t := range configSet["tags"].([]string) {
+		taggedImg := generateImageName(configSet["registry"].(string), configSet["prefix"].(string), t)
+		builder.Arg("-t", taggedImg)
+		// buildEngine.Tag(currentImage, taggedImg, flags.Verbose)
+		// buildEngine.Push(taggedImg, flags.Verbose)
+	}
+
+	builder.Arg("--push")
+
+	// builder.Arg("--output", "type=image,name=" + imageName) // required for multi-platform builds
+	builder.Arg(contextDir).SetVerbose(verbose)
 	b.buildTasks.AddTask(builder)
 }
 
 func (b *BuildxBuilder) Squash(imageName string, verbose bool) {}
 
 func (b *BuildxBuilder) Tag(imageName, taggedImage string, verbose bool) {
-	tagger := cmd.New("docker").Arg("tag").
-		Arg(imageName).
-		Arg(taggedImage).
-		SetVerbose(verbose).
-		PreInfo("Tagging " + taggedImage)
-	b.taggingTasks.AddUniq(tagger)
+	// tagger := cmd.New("docker").Arg("tag").
+	// 	Arg(imageName).
+	// 	Arg(taggedImage).
+	// 	SetVerbose(verbose).
+	// 	PreInfo("Tagging " + taggedImage)
+	// b.taggingTasks.AddUniq(tagger)
 }
 
 func (b *BuildxBuilder) Push(taggedImage string, verbose bool) {
-	pusher := cmd.New("docker").Arg("push").
-		Arg(taggedImage)
-	if !verbose {
-		pusher.Arg("--quiet")
-	}
-	b.pushTasks.AddTask(pusher)
+	// pusher := cmd.New("docker").Arg("push").
+	// 	Arg(taggedImage)
+	// if !verbose {
+	// 	pusher.Arg("--quiet")
+	// }
+	// b.pushTasks.AddTask(pusher)
 }
 
 func (b *BuildxBuilder) Remove(imageName string, verbose bool) {
@@ -104,4 +119,8 @@ func (b *BuildxBuilder) RunCleanup() error {
 
 func (b *BuildxBuilder) Shutdown() error {
 	return nil
+}
+
+func generateImageName(registry string, prefix string, name string) string {
+	return strings.ToLower(path.Join(registry, prefix, name))
 }
