@@ -1,11 +1,12 @@
 package builder
 
 import (
-	"path"
 	"strings"
 
 	"github.com/rs/zerolog/log"
 	"github.com/tgagor/template-dockerfiles/pkg/cmd"
+	"github.com/tgagor/template-dockerfiles/pkg/config"
+	"github.com/tgagor/template-dockerfiles/pkg/image"
 	"github.com/tgagor/template-dockerfiles/pkg/runner"
 )
 
@@ -45,58 +46,80 @@ func (b *BuildxBuilder) SetDryRun(dryRun bool) {
 	b.cleanupTasks.DryRun(dryRun)
 }
 
-func (b *BuildxBuilder) Build(dockerfile, imageName string, configSet map[string]interface{}, contextDir string, verbose bool) {
-	platforms := configSet["platforms"].([]string)
-	labels := configSet["labels"].(map[string]string)
-	buildArgs := configSet["args"].(map[string]string)
+func (b *BuildxBuilder) Build(img *image.Image, flags *config.Flags) {
 	builder := cmd.New("docker").Arg("buildx").Arg("build")
-	if len(platforms) > 0 {
-		builder.Arg(platformsToArgs(platforms)...)
+	if len(img.Platforms) > 0 {
+		builder.Arg(platformsToArgs(img.Platforms)...)
 	}
-	builder.Arg("-f", dockerfile).
-		Arg(labelsToArgs(labels)...).
-		Arg(buildArgsToArgs(buildArgs)...).
-		Arg("--load")
-
-	// collect tagging commands to keep order
-	for _, t := range configSet["tags"].([]string) {
-		taggedImg := generateImageName(configSet["registry"].(string), configSet["prefix"].(string), t)
-		builder.Arg("-t", taggedImg)
-		// buildEngine.Tag(currentImage, taggedImg, flags.Verbose)
-		// buildEngine.Push(taggedImg, flags.Verbose)
-	}
-
-	builder.Arg("--push")
-
-	// builder.Arg("--output", "type=image,name=" + imageName) // required for multi-platform builds
-	builder.Arg(contextDir).SetVerbose(verbose)
+	builder.Arg("-f", img.Dockerfile).
+		Arg("-t", img.Name).
+		Arg(labelsToArgs(img.Labels)...).
+		Arg(buildArgsToArgs(img.BuildArgs)...).
+		Arg("--load").
+		Arg(img.BuildContextDir).SetVerbose(flags.Verbose)
 	b.buildTasks.AddTask(builder)
 }
 
-func (b *BuildxBuilder) Squash(imageName string, verbose bool) {}
+func (b *BuildxBuilder) Squash(img *image.Image, flags *config.Flags) {}
 
-func (b *BuildxBuilder) Tag(imageName, taggedImage string, verbose bool) {
-	// tagger := cmd.New("docker").Arg("tag").
-	// 	Arg(imageName).
-	// 	Arg(taggedImage).
-	// 	SetVerbose(verbose).
-	// 	PreInfo("Tagging " + taggedImage)
-	// b.taggingTasks.AddUniq(tagger)
+func (b *BuildxBuilder) Tag(img *image.Image, flags *config.Flags) {
+	tagger := cmd.New("docker").Arg("buildx").Arg("build")
+	if len(img.Platforms) > 0 {
+		tagger.Arg(platformsToArgs(img.Platforms)...)
+	}
+	tagger.Arg("-f", img.Dockerfile).
+		Arg(labelsToArgs(img.Labels)...).
+		Arg(buildArgsToArgs(img.BuildArgs)...).
+		Arg("--load")
+
+	// collect tagging commands to keep order
+	for _, imageTag := range img.Tags() {
+		tagger.Arg("-t", imageTag)
+	}
+
+	// let push here
+	if flags.Push {
+		tagger.Arg("--push")
+	}
+
+	// builder.Arg("--output", "type=image,name=" + imageName) // required for multi-platform builds
+	tagger.Arg(img.BuildContextDir).
+		SetVerbose(flags.Verbose).
+		PreInfo("Tagging " + img.Name + " with tags: " + strings.Join(img.Tags(), ", "))
+	b.taggingTasks.AddTask(tagger)
 }
 
-func (b *BuildxBuilder) Push(taggedImage string, verbose bool) {
-	// pusher := cmd.New("docker").Arg("push").
-	// 	Arg(taggedImage)
-	// if !verbose {
-	// 	pusher.Arg("--quiet")
-	// }
-	// b.pushTasks.AddTask(pusher)
+func (b *BuildxBuilder) Push(img *image.Image, flags *config.Flags) {
+	pusher := cmd.New("docker").Arg("buildx").Arg("build")
+	if len(img.Platforms) > 0 {
+		pusher.Arg(platformsToArgs(img.Platforms)...)
+	}
+	pusher.Arg("-f", img.Dockerfile).
+		Arg(labelsToArgs(img.Labels)...).
+		Arg(buildArgsToArgs(img.BuildArgs)...).
+		Arg("--load")
+
+	// collect tagging commands to keep order
+	for _, imageTag := range img.Tags() {
+		pusher.Arg("-t", imageTag)
+	}
+
+	// let push here
+	if flags.Push {
+		pusher.Arg("--push")
+	}
+
+	// builder.Arg("--output", "type=image,name=" + imageName) // required for multi-platform builds
+	pusher.Arg(img.BuildContextDir).
+		SetVerbose(flags.Verbose).
+		PreInfo("Pushing " + img.Name + " with tags: " + strings.Join(img.Tags(), ", "))
+	b.taggingTasks.AddTask(pusher)
 }
 
-func (b *BuildxBuilder) Remove(imageName string, verbose bool) {
+func (b *BuildxBuilder) Remove(img *image.Image, flags *config.Flags) {
 	remover := cmd.New("docker").Arg("image", "rm", "-f").
-		Arg(imageName).
-		SetVerbose(verbose)
+		Arg(img.Name).
+		SetVerbose(flags.Verbose)
 	b.cleanupTasks.AddTask(remover)
 }
 
@@ -119,8 +142,4 @@ func (b *BuildxBuilder) RunCleanup() error {
 
 func (b *BuildxBuilder) Shutdown() error {
 	return nil
-}
-
-func generateImageName(registry string, prefix string, name string) string {
-	return strings.ToLower(path.Join(registry, prefix, name))
 }

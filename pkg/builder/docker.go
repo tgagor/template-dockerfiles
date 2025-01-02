@@ -7,6 +7,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/tgagor/template-dockerfiles/pkg/cmd"
+	"github.com/tgagor/template-dockerfiles/pkg/config"
+	"github.com/tgagor/template-dockerfiles/pkg/image"
 	"github.com/tgagor/template-dockerfiles/pkg/runner"
 	"github.com/tgagor/template-dockerfiles/pkg/util"
 )
@@ -63,42 +65,42 @@ func (b *DockerBuilder) SetDryRun(dryRun bool) {
 	b.squashImportTarsToImgs.DryRun(dryRun)
 }
 
-func (b *DockerBuilder) Build(dockerfile, imageName string, configSet map[string]interface{}, contextDir string, verbose bool) {
+func (b *DockerBuilder) Build(img *image.Image, flags *config.Flags) {
 	builder := cmd.New("docker").Arg("build").
-		Arg("-f", dockerfile).
-		Arg("-t", imageName).
-		Arg(labelsToArgs(configSet["labels"].(map[string]string))...).
-		Arg(buildArgsToArgs(configSet["args"].(map[string]string))...).
-		Arg(contextDir).
-		PreInfo("Building " + imageName).
-		SetVerbose(verbose)
+		Arg("-f", img.Dockerfile).
+		Arg("-t", img.Name).
+		Arg(labelsToArgs(img.Labels)...).
+		Arg(buildArgsToArgs(img.BuildArgs)...).
+		Arg(img.BuildContextDir).
+		PreInfo("Building " + img.Name).
+		SetVerbose(flags.Verbose)
 	b.buildTasks.AddTask(builder)
 }
 
 // TODO: should I add a flag for original image removal?
 //
 //	they're unreferenced after squashing
-func (b *DockerBuilder) Squash(imageName string, verbose bool) {
-	containerName := "run-" + sanitizeForFileName(imageName)
+func (b *DockerBuilder) Squash(img *image.Image, flags *config.Flags) {
+	containerName := "run-" + sanitizeForFileName(img.Name)
 
 	runItFirst := cmd.New("docker").Arg("run").
 		Arg("--name", containerName).
-		Arg(imageName).
+		Arg(img.Name).
 		Arg("true").
-		SetVerbose(verbose)
+		SetVerbose(flags.Verbose)
 	b.squashRunImages.AddTask(runItFirst)
 
-	imgMetadata, err := InspectImage(imageName)
+	imgMetadata, err := InspectImage(img.Name)
 	util.FailOnError(err, "Couldn't inspect Docker image.")
 	log.Debug().Interface("data", imgMetadata).Msg("Docker inspect result")
-	b.imageSizesBefore[imageName] = imgMetadata[0].Size
+	b.imageSizesBefore[img.Name] = imgMetadata[0].Size
 
 	tmpTarFile := containerName + ".tar"
 	exportIt := cmd.New("docker").Arg("export").
 		Arg(containerName).
 		Arg("-o", tmpTarFile).
-		PreInfo(fmt.Sprintf("Squashing %s", imageName)).
-		SetVerbose(verbose)
+		PreInfo(fmt.Sprintf("Squashing %s", img.Name)).
+		SetVerbose(flags.Verbose)
 	b.squashExportImages.AddTask(exportIt)
 	b.cleanupTasks.AddTask(cmd.New("docker").Arg("rm").Arg("-f").Arg(containerName))
 
@@ -111,14 +113,14 @@ func (b *DockerBuilder) Squash(imageName string, verbose bool) {
 
 		// parsing CMD
 		if command, err := json.Marshal(item.Config.Cmd); err != nil {
-			log.Error().Err(err).Str("image", imageName).Msg("Can't parse CMD")
+			log.Error().Err(err).Str("image", img.Name).Msg("Can't parse CMD")
 		} else {
 			importIt.Arg("--change", "CMD "+string(command))
 		}
 
 		// parsing VOLUME
 		if vol, err := json.Marshal(item.Config.Volumes); err != nil {
-			log.Error().Err(err).Str("image", imageName).Msg("Can't parse VOLUME")
+			log.Error().Err(err).Str("image", img.Name).Msg("Can't parse VOLUME")
 		} else {
 			importIt.Arg("--change", "VOLUME "+string(vol))
 		}
@@ -130,7 +132,7 @@ func (b *DockerBuilder) Squash(imageName string, verbose bool) {
 
 		// parsing ENTRYPOINT
 		if entrypoint, err := json.Marshal(item.Config.Entrypoint); err != nil {
-			log.Error().Err(err).Str("image", imageName).Msg("Can't parse ENTRYPOINT")
+			log.Error().Err(err).Str("image", img.Name).Msg("Can't parse ENTRYPOINT")
 		} else {
 			importIt.Arg("--change", "CMD "+string(entrypoint))
 		}
@@ -140,38 +142,42 @@ func (b *DockerBuilder) Squash(imageName string, verbose bool) {
 			importIt.Arg("--change", "WORKDIR "+item.Config.WorkingDir)
 		}
 	}
-	importIt.Arg(tmpTarFile).Arg(imageName).SetVerbose(verbose)
+	importIt.Arg(tmpTarFile).Arg(img.Name).SetVerbose(flags.Verbose)
 	b.squashImportTarsToImgs.AddTask(importIt)
 	b.squashTempoaryTarFiles = append(b.squashTempoaryTarFiles, tmpTarFile)
 
 	// remove interim images
 	oldImgHash := strings.TrimPrefix(imgMetadata[0].Id, "sha256:")[:12]
-	b.Remove(oldImgHash, verbose)
+	b.Remove(image.New().SetName(oldImgHash), flags)
 }
 
-func (b *DockerBuilder) Tag(imageName, taggedImage string, verbose bool) {
-	tagger := cmd.New("docker").Arg("tag").
-		Arg(imageName).
-		Arg(taggedImage).
-		PreInfo("Tagging " + taggedImage).
-		SetVerbose(verbose)
-	b.taggingTasks.AddUniq(tagger)
-}
-
-func (b *DockerBuilder) Push(taggedImage string, verbose bool) {
-	pusher := cmd.New("docker").Arg("push").
-		Arg(taggedImage).
-		PreInfo("Pushing " + taggedImage)
-	if !verbose {
-		pusher.Arg("--quiet")
+func (b *DockerBuilder) Tag(img *image.Image, flags *config.Flags) {
+	for _, tag := range img.Tags() {
+		tagger := cmd.New("docker").Arg("tag").
+			Arg(img.Name).
+			Arg(tag).
+			PreInfo("Tagging " + tag).
+			SetVerbose(flags.Verbose)
+		b.taggingTasks.AddUniq(tagger)
 	}
-	b.pushTasks.AddTask(pusher)
 }
 
-func (b *DockerBuilder) Remove(imageName string, verbose bool) {
+func (b *DockerBuilder) Push(img *image.Image, flags *config.Flags) {
+	for _, tag := range img.Tags() {
+		pusher := cmd.New("docker").Arg("push").
+			Arg(tag).
+			PreInfo("Pushing " + tag)
+		if !flags.Verbose {
+			pusher.Arg("--quiet")
+		}
+		b.pushTasks.AddTask(pusher)
+	}
+}
+
+func (b *DockerBuilder) Remove(img *image.Image, flags *config.Flags) {
 	remover := cmd.New("docker").Arg("image", "rm", "-f").
-		Arg(imageName).
-		SetVerbose(verbose)
+		Arg(img.Name).
+		SetVerbose(flags.Verbose)
 	b.cleanupTasks.AddTask(remover)
 }
 

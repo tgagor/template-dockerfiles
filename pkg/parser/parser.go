@@ -13,25 +13,27 @@ import (
 
 	"github.com/tgagor/template-dockerfiles/pkg/builder"
 	"github.com/tgagor/template-dockerfiles/pkg/config"
+	"github.com/tgagor/template-dockerfiles/pkg/image"
 	"github.com/tgagor/template-dockerfiles/pkg/util"
 )
 
-func Run(workdir string, cfg *config.Config, flags config.Flags) error {
+func Run(workdir string, cfg *config.Config, flags *config.Flags) error {
 	for _, name := range cfg.ImageOrder {
-		// Limit building to a single image
+		// Build only what's provided by --image flag (single image)
 		if flags.Image != "" && name != flags.Image {
 			continue
 		}
 
-		img := cfg.Images[name]
-		log.Debug().Str("image", name).Interface("config", img).Msg("Parsing")
-		dockerfileTemplate := filepath.Join(workdir, img.Dockerfile)
+		rawImg := cfg.Images[name]
+		log.Debug().Str("image", name).Interface("config", rawImg).Msg("Parsing")
+		dockerfileTemplate := filepath.Join(workdir, rawImg.Dockerfile)
 		log.Debug().Str("dockerfile", dockerfileTemplate).Msg("Processing")
-		if img.Excludes != nil {
-			log.Debug().Interface("excludes", img.Excludes).Msg("Excluded config sets")
+		if rawImg.Excludes != nil {
+			log.Debug().Interface("excludes", rawImg.Excludes).Msg("Excluded config sets")
 		}
 
 		var buildEngine builder.Builder
+		images := []*image.Image{}
 
 		// Choose the build engine based on the flag
 		switch flags.Engine {
@@ -48,7 +50,7 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 		buildEngine.SetThreads(flags.Threads)
 		buildEngine.SetDryRun(!flags.Build)
 
-		combinations := GenerateVariableCombinations(img.Variables)
+		combinations := GenerateVariableCombinations(rawImg.Variables)
 		for _, rawConfigSet := range combinations {
 			configSet, err := GenerateConfigSet(name, cfg, rawConfigSet, flags)
 			if err != nil {
@@ -56,9 +58,11 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 				return err
 			}
 
+			img := image.From(configSet, flags)
+
 			// skip excluded config sets
-			if isExcluded(configSet, img.Excludes) {
-				log.Warn().Interface("config set", configSet).Interface("excludes", img.Excludes).Msg("Skipping excluded")
+			if isExcluded(configSet, rawImg.Excludes) {
+				log.Warn().Interface("config set", configSet).Interface("excludes", rawImg.Excludes).Msg("Skipping excluded")
 				continue
 			}
 			log.Info().Str("image", name).Interface("config set", configSet).Msg("Building")
@@ -81,24 +85,33 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 			} else {
 				dockerfile = dockerfileTemplate
 			}
+			img.SetDockerfile(dockerfile).SetBuildContextDir(filepath.Dir(dockerfileTemplate))
 
 			// name is required to avoid collisions between images or
 			// when variables are not defined to have actual image name
 			// ERROR: invalid tag "timezone-UTC": repository name must be lowercase
 			currentImage := strings.ToLower(strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-"))
+			img.SetName(currentImage)
 
 			// collect building image commands
-			buildEngine.Build(dockerfile, currentImage, configSet, filepath.Dir(dockerfileTemplate), flags.Verbose)
+			buildEngine.Build(img, flags)
 
 			// collect tagging commands to keep order
 			for _, t := range configSet["tags"].([]string) {
 				taggedImg := generateImageName(cfg.Registry, cfg.Prefix, t)
-				buildEngine.Tag(currentImage, taggedImg, flags.Verbose)
-				buildEngine.Push(taggedImg, flags.Verbose)
+				img.AddTag(taggedImg)
 			}
+			buildEngine.Tag(img, flags)
+			buildEngine.Push(img, flags)
 
 			// remove temporary tags
-			buildEngine.Remove(currentImage, flags.Verbose)
+			buildEngine.Remove(img, flags)
+
+			// I might not need it, but let's keep it for now
+			images := append(images, img)
+			for _, i := range images {
+				log.Debug().Interface("image", i).Msg("Image details")
+			}
 		}
 
 		if flags.Build {
@@ -109,15 +122,8 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 		// let squash it
 		if flags.Build && flags.Squash {
 			// inspect requires images to be already built, so I need another loop here
-			for _, configSet := range combinations {
-				// skip excluded config sets
-				if isExcluded(configSet, img.Excludes) {
-					log.Debug().Interface("config set", configSet).Interface("excludes", img.Excludes).Msg("Skipping excluded")
-					continue
-				}
-
-				currentImage := strings.ToLower(strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-"))
-				buildEngine.Squash(currentImage, flags.Verbose)
+			for _, img := range images {
+				buildEngine.Squash(img, flags)
 			}
 			err := buildEngine.RunSquashing()
 			util.FailOnError(err, "Squashing failed with error, check error above. Exiting.")
@@ -143,7 +149,7 @@ func Run(workdir string, cfg *config.Config, flags config.Flags) error {
 	return nil
 }
 
-func GenerateConfigSet(imageName string, cfg *config.Config, currentConfigSet map[string]interface{}, flag config.Flags) (map[string]interface{}, error) {
+func GenerateConfigSet(imageName string, cfg *config.Config, currentConfigSet map[string]interface{}, flag *config.Flags) (map[string]interface{}, error) {
 	newConfigSet := make(map[string]interface{})
 
 	// first populate global values

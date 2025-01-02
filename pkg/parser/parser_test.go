@@ -244,7 +244,7 @@ func TestConfigSetGenerationCase1(t *testing.T) {
 	for _, imageName := range cfg.ImageOrder {
 		combinations := parser.GenerateVariableCombinations(cfg.Images[imageName].Variables)
 		for _, set := range combinations {
-			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, config.Flags{})
+			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, &config.Flags{})
 			require.NotEmpty(t, configSet)
 			require.NoError(t, err)
 
@@ -275,7 +275,7 @@ func TestConfigSetGenerationCase2(t *testing.T) {
 	for _, imageName := range cfg.ImageOrder {
 		combinations := parser.GenerateVariableCombinations(cfg.Images[imageName].Variables)
 		for _, set := range combinations {
-			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, config.Flags{})
+			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, &config.Flags{})
 			require.NotEmpty(t, configSet)
 			require.NoError(t, err)
 
@@ -313,7 +313,7 @@ func TestConfigSetGenerationCase5(t *testing.T) {
 	for _, imageName := range cfg.ImageOrder {
 		combinations := parser.GenerateVariableCombinations(cfg.Images[imageName].Variables)
 		for _, set := range combinations {
-			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, config.Flags{})
+			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, &config.Flags{})
 			require.NotEmpty(t, configSet)
 			require.NoError(t, err)
 
@@ -336,7 +336,7 @@ func TestConfigSetGenerationCase6(t *testing.T) {
 	for _, imageName := range cfg.ImageOrder {
 		combinations := parser.GenerateVariableCombinations(cfg.Images[imageName].Variables)
 		for _, set := range combinations {
-			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, config.Flags{Engine: "buildx"})
+			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, &config.Flags{Engine: "buildx"})
 			require.NotEmpty(t, configSet)
 			require.NoError(t, err)
 
@@ -368,7 +368,7 @@ func TestConfigSetGenerationCase6FailWithBadEngine(t *testing.T) {
 	for _, imageName := range cfg.ImageOrder {
 		combinations := parser.GenerateVariableCombinations(cfg.Images[imageName].Variables)
 		for _, set := range combinations {
-			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, config.Flags{Build: true})
+			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, &config.Flags{Build: true})
 			require.Error(t, err)
 			require.Empty(t, configSet)
 		}
@@ -411,7 +411,7 @@ func TestConfigSetGenerationCase9(t *testing.T) {
 	for _, imageName := range cfg.ImageOrder {
 		combinations := parser.GenerateVariableCombinations(cfg.Images[imageName].Variables)
 		for _, set := range combinations {
-			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, config.Flags{})
+			configSet, err := parser.GenerateConfigSet(imageName, cfg, set, &config.Flags{})
 			require.NotEmpty(t, configSet)
 			require.NoError(t, err)
 

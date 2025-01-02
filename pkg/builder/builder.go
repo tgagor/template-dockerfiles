@@ -1,13 +1,18 @@
 package builder
 
+import (
+	"github.com/tgagor/template-dockerfiles/pkg/config"
+	"github.com/tgagor/template-dockerfiles/pkg/image"
+)
+
 type Builder interface {
 	// New(threads int, dryRun bool) *Builder
 	Init() error
-	Build(dockerfile, imageName string, configSet map[string]interface{}, contextDir string, verbose bool)
-	Squash(imageName string, verbose bool)
-	Tag(imageName, taggedImage string, verbose bool)
-	Push(taggedImage string, verbose bool)
-	Remove(imageName string, verbose bool)
+	Build(image *image.Image, flags *config.Flags)
+	Squash(image *image.Image, flags *config.Flags)
+	Tag(image *image.Image, flags *config.Flags)
+	Push(image *image.Image, flags *config.Flags)
+	Remove(image *image.Image, flags *config.Flags)
 	// Run(stage Stage) error
 	SetThreads(threads int)
 	SetDryRun(dryRun bool)
