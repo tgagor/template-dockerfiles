@@ -52,8 +52,17 @@ jobs:
     # - uses: actions/setup-python@v5
     # - uses: pre-commit/action@v3.0.1
 
-    - name: Get Version from Tag
-      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+    - name: Guess next version
+      id: guessed_tag_version
+      uses: mathieudutour/github-tag-action@v6.2
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        dry_run: true
+        append_to_pre_release_tag: pre
+    - name: Extract version from tag
+      env:
+        VERSION_TAG: ${{ steps.guessed_tag_version.outputs.new_tag }}
+      run: echo "VERSION=$(echo $VERSION_TAG | sed -e "s/^v//" -e "s/-.*$//")" >> $GITHUB_ENV
 
     - name: Build
       id: build
@@ -201,7 +210,6 @@ jobs:
           sha512sum td-* > sha512sums.txt
 
       - name: Bump version and push tag
-        if: github.ref == 'refs/heads/main'
         id: tag_version
         uses: mathieudutour/github-tag-action@v6.2
         with:
