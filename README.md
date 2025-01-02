@@ -248,12 +248,6 @@ This example uses Ubuntu, but the steps should be similar on other platforms.
      \_ default    \_ default       running   v0.17.3    linux/amd64 (+3), linux/arm64, linux/arm (+2), linux/ppc64le, (3 more)
     ```
 
-4.  Add new builder
-
-    ```bash
-    docker buildx create --use --name multi-arch-builder
-    ```
-
 ### Enable Containerd Image Store
 
 To enable the containerd snapshotters feature, follow these steps:
