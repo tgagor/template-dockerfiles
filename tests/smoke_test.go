@@ -31,7 +31,7 @@ func TestPrintVersion(t *testing.T) {
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	// should print version
-	assert.Regexp(t, "^v[0-9]{1,}\\.[0-9]{1,}\\.[0-9]{1,}", out)
+	assert.Regexp(t, "^[0-9]{1,}\\.[0-9]{1,}\\.[0-9]{1,}", out)
 	assert.Nil(t, err)
 	code, err := shell.GetExitCodeForRunCommandError(err)
 	assert.Nil(t, err)
