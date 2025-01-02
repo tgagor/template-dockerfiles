@@ -86,3 +86,11 @@ Ideas and wishlist
 
     To improve visibility of tasks in the background.
     Hint: https://github.com/schollz/progressbar
+
+11. **Feature**: Cleanup and structure better: standard, verbose and debug logging
+
+    Right now standard logging sometimes produce not the best output. You can see that 4 images are building, but not what's the difference between them. On the other side verbose logging produce a lot of output that's rather debug/trace logs.
+
+    1. Standard logging, should produce minimum, valuable information on what's happening and present progress on longer building tasks
+    2. Verbose logging, should enhance standard with few more messages that normally are not important (like creation of temporary files and their removal). This should still focus on the main task of the tool
+    3. Trace/Debug logging would be first allowed to print a more of the "state of the run" process, which might be helpful for debugging weird/unexpected behaviors.
