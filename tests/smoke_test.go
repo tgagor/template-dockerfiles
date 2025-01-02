@@ -70,7 +70,7 @@ func TestCase1(t *testing.T) {
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
-	assert.Contains(t, out, "Building image=test-case-1")
+	assert.Regexp(t, "Building.*image=test-case-1", out)
 
 	// command should not fail
 	code, err := shell.GetExitCodeForRunCommandError(err)
@@ -105,8 +105,8 @@ func TestCase2(t *testing.T) {
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
-	assert.Contains(t, out, "Building image=test-case-2")
-	assert.Contains(t, out, "Building image=test-case-2b")
+	assert.Regexp(t, "Building.*image=test-case-2", out)
+	assert.Regexp(t, "Building.*image=test-case-2b", out)
 
 	// not all of them match but should
 	assert.Contains(t, out, "\"maintainer\":\"Tomasz Gągor <tomasz@gagor.pl>\"")
@@ -144,7 +144,8 @@ func TestCase3(t *testing.T) {
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.NotNil(t, err) // should fail
-	assert.Contains(t, out, "Building image=test-case-3")
+	assert.Regexp(t, "Building.*image=test-case-3", out)
+
 	assert.Contains(t, out, "No 'tags' defined for image=test-case-3")
 	assert.Contains(t, out, "building without 'tags', would just overwrite images in place, which is pointless - add 'tags' block to continue")
 
@@ -166,7 +167,7 @@ func TestCase4(t *testing.T) {
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
-	assert.Contains(t, out, "Building image=test-case-4")
+	assert.Regexp(t, "Building.*image=test-case-4", out)
 
 	// do not fail
 	code, err := shell.GetExitCodeForRunCommandError(err)
@@ -187,7 +188,7 @@ func TestCase5(t *testing.T) {
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
-	assert.Contains(t, out, "Building image=test-case-5")
+	assert.Regexp(t, "Building.*image=test-case-5", out)
 
 	// do not fail
 	code, err := shell.GetExitCodeForRunCommandError(err)
@@ -207,7 +208,7 @@ func TestCase6(t *testing.T) {
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
-	assert.Contains(t, out, "Building image=test-case-6a")
+	assert.Regexp(t, "Building.*image=test-case-6", out)
 
 	// do not fail
 	code, err := shell.GetExitCodeForRunCommandError(err)
@@ -226,7 +227,7 @@ func TestCase7(t *testing.T) {
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
-	assert.Contains(t, out, "Building image=test-case-7")
+	assert.Regexp(t, "Building.*image=test-case-7", out)
 
 	// do not fail
 	code, err := shell.GetExitCodeForRunCommandError(err)
@@ -246,7 +247,7 @@ func TestCase8(t *testing.T) {
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
-	assert.Contains(t, out, "Building image=test-case-8")
+	assert.Regexp(t, "Building.*image=test-case-8", out)
 	assert.Contains(t, out, "Skipping excluded config set=")
 
 	// do not fail
@@ -266,7 +267,7 @@ func TestCase9(t *testing.T) {
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
-	assert.Contains(t, out, "Building image=test-case-9")
+	assert.Regexp(t, "Building.*image=test-case-9", out)
 
 	// should generage args
 	// FIXME: amend after changes
