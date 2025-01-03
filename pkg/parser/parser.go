@@ -2,7 +2,6 @@ package parser
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/rs/zerolog/log"
 
@@ -11,7 +10,7 @@ import (
 	"github.com/tgagor/template-dockerfiles/pkg/image"
 )
 
-func Run(workdir string, cfg *config.Config, flags *config.Flags) error {
+func Run(cfg *config.Config, flags *config.Flags) error {
 	for _, name := range cfg.ImageOrder {
 		// Build only what's provided by --image flag (single image)
 		if flags.Image != "" && name != flags.Image {
@@ -44,7 +43,6 @@ func Run(workdir string, cfg *config.Config, flags *config.Flags) error {
 		combinations := GenerateVariableCombinations(imageCfg.Variables)
 		for _, rawConfigSet := range combinations {
 			img := image.From(name, cfg, rawConfigSet, flags)
-			img.SetDockerfileTemplate(filepath.Join(workdir, imageCfg.Dockerfile))
 			if err := img.Validate(); err != nil {
 				return err
 			}

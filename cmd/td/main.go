@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
 
 	"github.com/mattn/go-colorable"
@@ -87,8 +86,7 @@ When 'docker build' is just not enough. :-)`,
 		}
 
 		// Run templating and image building
-		workdir := filepath.Dir(flags.BuildFile)
-		if err := parser.Run(workdir, cfg, &flags); err != nil {
+		if err := parser.Run(cfg, &flags); err != nil {
 			util.FailOnError(err, "Error during parsing")
 		}
 	},
