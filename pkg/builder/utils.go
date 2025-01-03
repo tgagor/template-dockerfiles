@@ -31,7 +31,7 @@ func InspectImage(image string) (DockerInspect, error) {
 	// Create a variable to hold the unmarshaled data
 	var inspect DockerInspect
 
-	log.Debug().Interface("output", out).Msg("Inspect output")
+	log.Trace().Interface("output", out).Msg("Inspect output")
 
 	// Unmarshal the JSON data into the DockerInspect structure
 	if err := json.Unmarshal([]byte(out), &inspect); err != nil {

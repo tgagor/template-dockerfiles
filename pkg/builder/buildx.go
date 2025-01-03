@@ -67,7 +67,7 @@ func (b *BuildxBuilder) Build(img *image.Image) {
 		Arg("--load").
 		Arg(img.BuildContextDir).SetVerbose(b.flags.Verbose)
 	b.buildTasks.AddTask(builder)
-	b.Remove(img) // this image is temporary, remove it after build
+	b.Remove(img.UniqName()) // this image is temporary, remove it after build
 }
 
 func (b *BuildxBuilder) Squash(img *image.Image) {}
@@ -103,9 +103,9 @@ func (b *BuildxBuilder) TagAndPush(img *image.Image) {
 	b.taggingTasks.AddTask(tagger)
 }
 
-func (b *BuildxBuilder) Remove(img *image.Image) {
+func (b *BuildxBuilder) Remove(imageName string) {
 	remover := cmd.New("docker").Arg("image", "rm", "-f").
-		Arg(img.UniqName()).
+		Arg(imageName).
 		SetVerbose(b.flags.Verbose)
 	b.cleanupTasks.AddTask(remover)
 }

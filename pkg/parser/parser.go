@@ -20,9 +20,7 @@ func Run(workdir string, cfg *config.Config, flags *config.Flags) error {
 
 		imageCfg := cfg.Images[name]
 		log.Debug().Str("image", name).Interface("config", imageCfg).Msg("Parsing")
-		if imageCfg.Excludes != nil {
-			log.Debug().Interface("excludes", imageCfg.Excludes).Msg("Excluded config sets")
-		}
+		log.Debug().Interface("excludes", imageCfg.Excludes).Msg("Excluded config sets")
 
 		var buildEngine builder.Builder
 		// Choose the build engine based on the flag
@@ -51,7 +49,7 @@ func Run(workdir string, cfg *config.Config, flags *config.Flags) error {
 
 			// skip excluded config sets
 			if isExcluded(img.ConfigSet(), imageCfg.Excludes) {
-				log.Warn().Interface("config set", img.ConfigSet()).Interface("excludes", imageCfg.Excludes).Msg("Skipping excluded")
+				log.Warn().Interface("config set", img.Representation()).Interface("excludes", imageCfg.Excludes).Msg("Skipping excluded")
 				continue
 			}
 

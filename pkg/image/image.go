@@ -155,19 +155,55 @@ func (i *Image) ConfigSet() map[string]interface{} {
 }
 
 func (i *Image) Representation() map[string]interface{} {
-	return map[string]interface{}{
-		"name":          i.Name,
-		"registry":      i.Registry,
-		"prefix":        i.Prefix,
-		"dockerfile":    i.Dockerfile,
-		"build_context": i.BuildContextDir,
-		"variables":     i.Variables,
-		// "tags":            i.tags,
-		"version": i.Version,
-		// "labels":          i.Labels,
-		"build_args": i.BuildArgs,
-		"platforms":  i.Platforms,
+	repr := i.ConfigSet()
+	delete(repr, "env")
+	if !i.Flags.Verbose {
+		delete(repr, "labels")
+		delete(repr, "maintainer")
 	}
+
+	for key, value := range repr {
+		switch v := value.(type) {
+		case map[string]interface{}:
+			if len(v) > 0 {
+				repr[key] = v
+			} else {
+				delete(repr, key)
+			}
+		case map[string]string:
+			if len(v) > 0 {
+				repr[key] = v
+			} else {
+				delete(repr, key)
+			}
+		case []interface{}:
+			if len(v) > 0 {
+				repr[key] = v
+			} else {
+				delete(repr, key)
+			}
+		case []string:
+			if len(v) > 0 {
+				repr[key] = v
+			} else {
+				delete(repr, key)
+			}
+		case int:
+			repr[key] = v
+		case string:
+			if v != "" {
+				repr[key] = v
+			} else {
+				delete(repr, key)
+			}
+		case nil:
+			delete(repr, key)
+		default:
+			log.Warn().Str("key", key).Interface("value", value).Type("type", value).Msg("Unsupported type")
+		}
+	}
+
+	return repr
 }
 
 func (i *Image) String() string {
@@ -287,7 +323,7 @@ func generateCombinationString(configSet map[string]interface{}) string {
 			safeKey := sanitizeForTag(k)
 			safeValue := sanitizeForTag(fmt.Sprintf("%v", v))
 			parts = append(parts, fmt.Sprintf("%s-%s", safeKey, safeValue))
-			log.Debug().Str("key", safeKey).Str("value", safeValue).Msg("Combining")
+			log.Trace().Str("key", safeKey).Str("value", safeValue).Msg("Combining")
 		}
 	}
 	sort.Strings(parts)

@@ -88,6 +88,7 @@ func (b *DockerBuilder) Build(img *image.Image) {
 		PreInfo("Building " + img.UniqName()).
 		SetVerbose(b.flags.Verbose)
 	b.buildTasks.AddTask(builder)
+	b.Remove(img.UniqName()) // this image is temporary, remove it after build
 }
 
 // FIXME: images before squashing became unreferenced after squashing, so we should remove them
@@ -103,7 +104,7 @@ func (b *DockerBuilder) Squash(img *image.Image) {
 
 	imgMetadata, err := InspectImage(img.UniqName())
 	util.FailOnError(err, "Couldn't inspect Docker image.")
-	log.Debug().Interface("data", imgMetadata).Msg("Docker inspect result")
+	log.Trace().Interface("data", imgMetadata).Msg("Docker inspect result")
 	b.imageSizesBefore[img.UniqName()] = imgMetadata[0].Size
 
 	tmpTarFile := containerName + ".tar"
@@ -159,7 +160,7 @@ func (b *DockerBuilder) Squash(img *image.Image) {
 
 	// remove interim images
 	oldImgHash := strings.TrimPrefix(imgMetadata[0].Id, "sha256:")[:12]
-	b.Remove(image.New().SetName(oldImgHash))
+	b.Remove(oldImgHash)
 }
 
 func (b *DockerBuilder) Tag(img *image.Image) {
@@ -185,9 +186,9 @@ func (b *DockerBuilder) Push(img *image.Image) {
 	}
 }
 
-func (b *DockerBuilder) Remove(img *image.Image) {
+func (b *DockerBuilder) Remove(imageName string) {
 	remover := cmd.New("docker").Arg("image", "rm", "-f").
-		Arg(img.UniqName()).
+		Arg(imageName).
 		SetVerbose(b.flags.Verbose)
 	b.cleanupTasks.AddTask(remover)
 }

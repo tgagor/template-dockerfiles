@@ -14,4 +14,5 @@ type Flags struct {
 	Tag          string
 	Threads      int
 	Verbose      bool
+	Debug        bool
 }
