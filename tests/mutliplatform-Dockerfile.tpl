@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM alpine:{{ .alpine }}
+FROM alpine:{{ .alpine }}
 
 ARG TARGETOS
 ARG TARGETARCH

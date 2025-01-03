@@ -5,7 +5,7 @@ platforms:
 
 images:
   test-case-6a:
-    # white characters at beginning and end of labels and tags should be trimmed
+    # no platform override
     dockerfile: mutliplatform-Dockerfile.tpl
     variables:
       alpine:
@@ -14,7 +14,7 @@ images:
     tags:
       - "base:alpine{{ .alpine }}"
   test-case-6b:
-    # white characters at beginning and end of labels and tags should be trimmed
+    # single platform override
     dockerfile: mutliplatform-Dockerfile.tpl
     platforms:
       - linux/amd64

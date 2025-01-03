@@ -1,6 +1,6 @@
 images:
   test-case-8:
-    dockerfile: tomcat-Dockerfile.tpl
+    dockerfile: Dockerfile.tpl
     variables:
       alpine:
         - "3.19"

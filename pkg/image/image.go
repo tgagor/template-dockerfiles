@@ -68,15 +68,15 @@ func From(name string, cfg *config.Config, configSet map[string]interface{}, fla
 	// collect build arguments
 	maps.Copy(img.BuildArgs, cfg.Images[name].BuildArgs)
 
+	// set Dockerfile and build context
+	img.SetDockerfileTemplate(filepath.Join(filepath.Dir(flags.BuildFile), cfg.Images[name].Dockerfile))
+
 	return img
 }
 
 func (i *Image) Validate() error {
 	if i.Name == "" {
 		return fmt.Errorf("image name is required")
-	}
-	if i.Dockerfile == "" {
-		return fmt.Errorf("Dockerfile is required")
 	}
 	if i.BuildContextDir == "" {
 		return fmt.Errorf("BuildContextDir is required")
@@ -127,10 +127,15 @@ func (i *Image) Validate() error {
 	}
 
 	// template Dockerfile
-	log.Debug().Str("dockerfile", i.Dockerfile).Msg("Generating temporary")
-	if err := TemplateFile(i.DockerfileTemplate, i.Dockerfile, i.ConfigSet()); err != nil {
-		log.Error().Err(err).Str("dockerfile", i.Dockerfile).Msg("Failed to template Dockerfile")
-		return err
+	if i.Dockerfile == "" {
+		return fmt.Errorf("Dockerfile is required")
+	}
+	if strings.HasSuffix(i.DockerfileTemplate, ".tpl") {
+		log.Debug().Str("dockerfile", i.Dockerfile).Msg("Generating temporary")
+		if err := TemplateFile(i.DockerfileTemplate, i.Dockerfile, i.ConfigSet()); err != nil {
+			log.Error().Err(err).Str("dockerfile", i.Dockerfile).Msg("Failed to template Dockerfile")
+			return err
+		}
 	}
 
 	return nil
@@ -241,15 +246,17 @@ func (i *Image) updatePlatforms(platforms []string) *Image {
 }
 
 func (i *Image) SetDockerfileTemplate(templateFile string) *Image {
-	log.Debug().Str("dockerfile", templateFile).Msg("Processing")
-	i.DockerfileTemplate = templateFile
+	if templateFile != "" {
+		log.Debug().Str("dockerfile", templateFile).Msg("Processing")
+		i.DockerfileTemplate = templateFile
 
-	if strings.HasSuffix(templateFile, ".tpl") {
-		i.Dockerfile = i.generateDockerfilePath()
-	} else {
-		i.Dockerfile = i.DockerfileTemplate
+		if strings.HasSuffix(i.DockerfileTemplate, ".tpl") {
+			i.Dockerfile = i.generateDockerfilePath()
+		} else {
+			i.Dockerfile = i.DockerfileTemplate
+		}
+		i.BuildContextDir = filepath.Dir(i.DockerfileTemplate)
 	}
-	i.BuildContextDir = filepath.Dir(i.DockerfileTemplate)
 	return i
 }
 
