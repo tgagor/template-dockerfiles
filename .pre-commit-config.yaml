@@ -20,14 +20,17 @@ repos:
     rev: v0.5.1
     hooks:
       - id: go-fmt
-      # - id: go-vet
       - id: go-imports
       - id: go-cyclo
         args: [-over=20]
-      # - id: validate-toml
-      # - id: no-go-testing
       - id: golangci-lint
       - id: go-critic
-      # - id: go-unit-tests
-      # - id: go-build
       - id: go-mod-tidy
+  - repo: local
+    hooks:
+      - id: go-vet
+        name: 'go vet'
+        entry: run-go-vet.sh
+        files: '\.go$'
+        language: 'script'
+        description: "Runs `go vet`, requires golang"
