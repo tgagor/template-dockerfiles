@@ -86,6 +86,7 @@ func (b *DockerBuilder) Build(img *image.Image) {
 		Arg(buildArgsToArgs(img.BuildArgs)...).
 		Arg(img.BuildContextDir).
 		PreInfo("Building " + img.UniqName()).
+		PostInfo("Built " + img.UniqName()).
 		SetVerbose(b.flags.Verbose)
 	b.buildTasks.AddTask(builder)
 	b.Remove(img.UniqName()) // this image is temporary, remove it after build

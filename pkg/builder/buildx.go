@@ -65,7 +65,10 @@ func (b *BuildxBuilder) Build(img *image.Image) {
 		Arg(labelsToArgs(img.Labels)...).
 		Arg(buildArgsToArgs(img.BuildArgs)...).
 		Arg("--load").
-		Arg(img.BuildContextDir).SetVerbose(b.flags.Verbose)
+		Arg(img.BuildContextDir).
+		PreInfo("Building " + img.UniqName()).
+		PostInfo("Built " + img.UniqName()).
+		SetVerbose(b.flags.Verbose)
 	b.buildTasks.AddTask(builder)
 	b.Remove(img.UniqName()) // this image is temporary, remove it after build
 }
