@@ -11,7 +11,9 @@ import (
 )
 
 type BuildxBuilder struct {
-	flags        *config.Flags
+	flags  *config.Flags
+	images []*image.Image
+
 	buildTasks   *runner.Runner
 	taggingTasks *runner.Runner
 	cleanupTasks *runner.Runner
@@ -33,20 +35,24 @@ func (b *BuildxBuilder) Init() error {
 
 func (b *BuildxBuilder) SetFlags(flags *config.Flags) {
 	b.flags = flags
-	b.setThreads(flags.Threads)
-	b.setDryRun(!flags.Build)
+	b.SetThreads(flags.Threads)
+	b.SetDryRun(!flags.Build)
 }
 
-func (b *BuildxBuilder) setThreads(threads int) {
+func (b *BuildxBuilder) SetThreads(threads int) {
 	b.buildTasks.Threads(threads)
 	// b.tagTasks have to use 1 thread
 	b.cleanupTasks.Threads(threads)
 }
 
-func (b *BuildxBuilder) setDryRun(dryRun bool) {
+func (b *BuildxBuilder) SetDryRun(dryRun bool) {
 	b.buildTasks.DryRun(dryRun)
 	b.taggingTasks.DryRun(dryRun)
 	b.cleanupTasks.DryRun(dryRun)
+}
+
+func (b *BuildxBuilder) Queue(image *image.Image) {
+	b.images = append(b.images, image)
 }
 
 func (b *BuildxBuilder) Build(img *image.Image) {
@@ -94,7 +100,6 @@ func (b *BuildxBuilder) TagAndPush(img *image.Image) {
 	b.taggingTasks.AddTask(tagger)
 }
 
-
 func (b *BuildxBuilder) Remove(img *image.Image) {
 	remover := cmd.New("docker").Arg("image", "rm", "-f").
 		Arg(img.Name).
@@ -103,39 +108,44 @@ func (b *BuildxBuilder) Remove(img *image.Image) {
 }
 
 func (b *BuildxBuilder) Run() error {
+	// build images in parallel to fill the cache
 	if b.flags.Build {
+		for _, img := range b.images {
+			b.Build(img)
+		}
+
 		if err := b.buildTasks.Run(); err != nil {
 			return err
 		}
+	} else {
+		log.Warn().Msg("Skipping building images. Use --build flag to build images.")
+		return nil
 	}
 
 	if b.flags.Build && b.flags.Squash {
 		log.Warn().Msg("Squash is not supported for buildx engine. Skipping.")
 	}
 
+	// tag and push images based on the cache
 	if b.flags.Build || b.flags.Push {
+		for _, img := range b.images {
+			b.TagAndPush(img)
+		}
+
 		if err := b.taggingTasks.Run(); err != nil {
 			return err
 		}
 	}
 
+	return nil
+}
+
+func (b *BuildxBuilder) Shutdown() error {
 	if b.flags.Build {
 		if err := b.cleanupTasks.Run(); err != nil {
 			return err
 		}
 	}
-	return nil
-}
 
-// func (b *BuildxBuilder) runBuilding() error {
-// 	if b.flags.Build {
-// 		return b.buildTasks.Run()
-// 	} else {
-// 		log.Warn().Msg("Skipping building images")
-// 		return nil
-// 	}
-// }
-
-func (b *BuildxBuilder) Shutdown() error {
 	return nil
 }

@@ -1,6 +1,7 @@
 package image
 
 import (
+	"maps"
 	"path"
 	"reflect"
 	"strings"
@@ -14,7 +15,7 @@ type Image struct {
 	Prefix          string
 	Dockerfile      string
 	BuildContextDir string
-	// Variables       map[string]interface{}
+	Variables       map[string]interface{}
 	tags            []string
 	Labels          map[string]string
 	BuildArgs       map[string]string
@@ -28,24 +29,31 @@ func New() *Image {
 		Labels:    map[string]string{},
 		BuildArgs: map[string]string{},
 		Platforms: []string{},
+		Variables: map[string]interface{}{},
 	}
 }
 
 func From(configSet map[string]interface{}, flags *config.Flags) *Image {
-	return &Image{
+	img := Image{
 		// Name:      configSet["name"].(string),
-		Registry:  configSet["registry"].(string),
-		Prefix:    configSet["prefix"].(string),
-		tags:      configSet["tags"].([]string),
+		Registry: configSet["registry"].(string),
+		Prefix:   configSet["prefix"].(string),
+		// tags:      configSet["tags"].([]string),
 		Labels:    configSet["labels"].(map[string]string),
 		BuildArgs: configSet["args"].(map[string]string),
-		Platforms: configSet["platforms"].([]string),
-		Flags:     flags,
+		// Platforms: configSet["platforms"].([]string),
+		Flags: flags,
 	}
+
+	img.AddTags(configSet["tags"].([]string)...)
+	img.SetMaintainer(configSet["maintainer"].(string))
+	img.SetPlatforms(configSet["platforms"].([]string))
+
+	return &img
 }
 
 func (i *Image) String() string {
-	return i.FullName()
+	return i.Name
 }
 
 func (i *Image) SetFlags(flags *config.Flags) *Image {
@@ -58,19 +66,9 @@ func (i *Image) SetName(name string) *Image {
 	return i
 }
 
-func (i *Image) FullName() string {
-	return strings.ToLower(path.Join(i.Registry, i.Prefix, i.Name))
-}
-
-func (i *Image) SetRegistry(registry string) *Image {
-	i.Registry = registry
-	return i
-}
-
-func (i *Image) SetPrefix(prefix string) *Image {
-	i.Prefix = prefix
-	return i
-}
+// func (i *Image) FullName() string {
+// 	return strings.ToLower(path.Join(i.Registry, i.Prefix, i.Name))
+// }
 
 func (i *Image) SetMaintainer(maintainer string) *Image {
 	if maintainer != "" {
@@ -95,12 +93,12 @@ func (i *Image) SetDockerfile(dockerfile string) *Image {
 	return i
 }
 
-func (i *Image) SetBuildContextDir(workdir string) *Image {
-	i.BuildContextDir = workdir
+func (i *Image) SetBuildContextDir(contextdir string) *Image {
+	i.BuildContextDir = contextdir
 	return i
 }
 
-func (i *Image) AddTag(tags ...string) *Image {
+func (i *Image) AddTags(tags ...string) *Image {
 	i.tags = append(i.tags, tags...)
 	return i
 }
@@ -114,16 +112,17 @@ func (i *Image) Tags() []string {
 }
 
 func (i *Image) AddLabels(labels map[string]string) *Image {
-	for name, value := range labels {
-		i.Labels[name] = value
-	}
+	maps.Copy(i.Labels, labels)
 	return i
 }
 
 func (i *Image) AddArgs(args map[string]string) *Image {
-	for name, value := range args {
-		i.BuildArgs[name] = value
-	}
+	maps.Copy(i.BuildArgs, args)
+	return i
+}
+
+func (i *Image) AddVariables(variables map[string]interface{}) *Image {
+	maps.Copy(i.Variables, variables)
 	return i
 }
 

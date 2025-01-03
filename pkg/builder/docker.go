@@ -14,7 +14,9 @@ import (
 )
 
 type DockerBuilder struct {
-	flags        *config.Flags
+	flags  *config.Flags
+	images []*image.Image
+
 	buildTasks   *runner.Runner
 	taggingTasks *runner.Runner
 	pushTasks    *runner.Runner
@@ -46,11 +48,11 @@ func (b *DockerBuilder) Init() error {
 
 func (b *DockerBuilder) SetFlags(flags *config.Flags) {
 	b.flags = flags
-	b.setThreads(flags.Threads)
-	b.setDryRun(!flags.Build)
+	b.SetThreads(flags.Threads)
+	b.SetDryRun(!flags.Build)
 }
 
-func (b *DockerBuilder) setThreads(threads int) {
+func (b *DockerBuilder) SetThreads(threads int) {
 	b.buildTasks.Threads(threads)
 	// b.tagTasks have to use 1 thread
 	b.pushTasks.Threads(threads)
@@ -61,7 +63,7 @@ func (b *DockerBuilder) setThreads(threads int) {
 	b.squashImportTarsToImgs.Threads(threads)
 }
 
-func (b *DockerBuilder) setDryRun(dryRun bool) {
+func (b *DockerBuilder) SetDryRun(dryRun bool) {
 	b.buildTasks.DryRun(dryRun)
 	b.taggingTasks.DryRun(dryRun)
 	b.pushTasks.DryRun(dryRun)
@@ -70,6 +72,10 @@ func (b *DockerBuilder) setDryRun(dryRun bool) {
 	b.squashRunImages.DryRun(dryRun)
 	b.squashExportImages.DryRun(dryRun)
 	b.squashImportTarsToImgs.DryRun(dryRun)
+}
+
+func (b *DockerBuilder) Queue(image *image.Image) {
+	b.images = append(b.images, image)
 }
 
 func (b *DockerBuilder) Build(img *image.Image) {
@@ -189,42 +195,54 @@ func (b *DockerBuilder) Remove(img *image.Image) {
 }
 
 func (b *DockerBuilder) Run() error {
+	// build images in parallel to fill the cache
 	if b.flags.Build {
+		for _, img := range b.images {
+			b.Build(img)
+		}
+
 		if err := b.buildTasks.Run(); err != nil {
 			return err
 		}
+	} else {
+		log.Warn().Msg("Skipping building images. Use --build flag to build images.")
+		return nil
 	}
+
+	// squash images
 	if b.flags.Build && b.flags.Squash {
+		for _, img := range b.images {
+			b.Squash(img)
+		}
+
 		if err := b.runSquashing(); err != nil {
 			return err
 		}
 	}
+
+	// tag single threaded
 	if b.flags.Build {
+		for _, img := range b.images {
+			b.Tag(img)
+		}
+
 		if err := b.taggingTasks.Run(); err != nil {
 			return err
 		}
 	}
+
+	// push multi-threaded
 	if b.flags.Push {
-		if err := b.pushTasks.Run(); err != nil {
-			return err
+		for _, img := range b.images {
+			b.Push(img)
 		}
-	}
-	if b.flags.Build {
-		if err := b.cleanupTasks.Run(); err != nil {
+
+		if err := b.pushTasks.Run(); err != nil {
 			return err
 		}
 	}
 	return nil
 }
-
-// func (b *DockerBuilder) runBuilding() error {
-// 	if b.flags.Build {
-// 		return b.buildTasks.Run()
-// 	} else {
-// 		log.Warn().Msg("Skipping building images")
-// 		return nil
-// 	}
-// }
 
 func (b *DockerBuilder) runSquashing() error {
 	defer util.RemoveFile(b.squashTempoaryTarFiles...)
@@ -254,5 +272,11 @@ func (b *DockerBuilder) runSquashing() error {
 }
 
 func (b *DockerBuilder) Shutdown() error {
+	if b.flags.Build {
+		if err := b.cleanupTasks.Run(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

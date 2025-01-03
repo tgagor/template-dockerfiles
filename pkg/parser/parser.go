@@ -32,8 +32,6 @@ func Run(workdir string, cfg *config.Config, flags *config.Flags) error {
 		}
 
 		var buildEngine builder.Builder
-		images := []*image.Image{}
-
 		// Choose the build engine based on the flag
 		switch flags.Engine {
 		case "buildx":
@@ -44,8 +42,10 @@ func Run(workdir string, cfg *config.Config, flags *config.Flags) error {
 			buildEngine = &builder.DockerBuilder{}
 		}
 
-		err := buildEngine.Init()
-		util.FailOnError(err, "Failed to initialize builder.")
+		if err := buildEngine.Init(); err != nil {
+			log.Error().Err(err).Msg("Failed to initialize builder.")
+			return err
+		}
 		buildEngine.SetFlags(flags)
 
 		combinations := GenerateVariableCombinations(rawImg.Variables)
@@ -63,18 +63,13 @@ func Run(workdir string, cfg *config.Config, flags *config.Flags) error {
 			}
 
 			img := image.From(configSet, flags)
-			img.SetRegistry(cfg.Registry).
-				SetPrefix(cfg.Prefix).
-				SetMaintainer(cfg.Maintainer).
-				SetPlatforms(cfg.GlobalPlatforms).
-				AddTag(configSet["tags"].([]string)...)
 
 			log.Info().Str("image", name).Interface("config set", configSet).Msg("Building")
 			// name is required to avoid collisions between images or
 			// when variables are not defined to have actual image name
 			// ERROR: invalid tag "timezone-UTC": repository name must be lowercase
 			currentImage := strings.ToLower(strings.Trim(fmt.Sprintf("%s-%s", name, generateCombinationString(configSet)), "-"))
-			img.SetName(currentImage)
+			img.SetName(currentImage).AddVariables(rawConfigSet)
 
 			var dockerfile string
 			if strings.HasSuffix(dockerfileTemplate, ".tpl") {
@@ -87,7 +82,7 @@ func Run(workdir string, cfg *config.Config, flags *config.Flags) error {
 					return err
 				}
 
-				// Cleanup temporary files
+				// Cleanup temporary dockerfiles
 				if flags.Delete {
 					defer util.RemoveFile(dockerfile)
 				}
@@ -96,37 +91,22 @@ func Run(workdir string, cfg *config.Config, flags *config.Flags) error {
 			}
 			img.SetDockerfile(dockerfile).SetBuildContextDir(filepath.Dir(dockerfileTemplate))
 
-			// collect building image commands
-			buildEngine.Build(img)
-
-			// schedule tagging and pushing tasks
-			// buildEngine.Tag(img, flags)
-			// buildEngine.Push(img, flags)
-
-			// remove temporary tags
-			// buildEngine.Remove(img, flags)
-
-			// I might not need it, but let's keep it for now
-			images := append(images, img)
-			for _, i := range images {
-				log.Debug().Interface("image", i).Msg("Image details")
-			}
+			// schedule for building
+			buildEngine.Queue(img)
 		}
 
+		// execute the build queue
 		if err := buildEngine.Run(); err != nil {
 			log.Error().Err(err).Msg("Building failed with error, check error above. Exiting.")
 			return err
 		}
 
-		// FIXME: I don't know now how to call it, so I will disable it for now
-		// inspect requires images to be already built, so I need another loop here
-		// for _, img := range images {
-		// 	buildEngine.Squash(img)
-		// }
-
 		// Shutdown the builder
-		err = buildEngine.Shutdown()
-		util.FailOnError(err, "Failed to shutdown builder.")
+		if err := buildEngine.Shutdown(); err != nil {
+			log.Error().Err(err).Msg("Failed to shutdown builder.")
+			return err
+		}
+
 		fmt.Println("")
 	}
 	return nil
