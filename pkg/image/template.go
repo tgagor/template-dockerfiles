@@ -1,4 +1,4 @@
-package parser
+package image
 
 import (
 	"bytes"
@@ -54,7 +54,7 @@ func TemplateList(source []string, configSet map[string]interface{}) ([]string, 
 	}
 
 	if len(templated) > 0 {
-		log.Debug().Interface("source", source).Interface("templated", templated).Msg("Templating list")
+		log.Trace().Interface("source", source).Interface("templated", templated).Msg("Templating list")
 	}
 
 	return templated, nil
@@ -78,7 +78,7 @@ func TemplateMap(source map[string]string, configSet map[string]interface{}) (ma
 	}
 
 	if len(templated) > 0 {
-		log.Debug().Interface("source", source).Interface("templated", templated).Msg("Templating map")
+		log.Trace().Interface("source", source).Interface("templated", templated).Msg("Templating map")
 	}
 
 	return templated, nil

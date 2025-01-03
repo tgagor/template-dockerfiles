@@ -17,5 +17,5 @@ type Builder interface {
 	Run() error
 
 	// cleanup tasks
-	Shutdown() error
+	Terminate() error
 }

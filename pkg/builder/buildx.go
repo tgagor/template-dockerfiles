@@ -61,7 +61,7 @@ func (b *BuildxBuilder) Build(img *image.Image) {
 		builder.Arg(platformsToArgs(img.Platforms)...)
 	}
 	builder.Arg("-f", img.Dockerfile).
-		Arg("-t", img.Name).
+		Arg("-t", img.UniqName()).
 		Arg(labelsToArgs(img.Labels)...).
 		Arg(buildArgsToArgs(img.BuildArgs)...).
 		Arg("--load").
@@ -90,19 +90,22 @@ func (b *BuildxBuilder) TagAndPush(img *image.Image) {
 	// let push here
 	if b.flags.Push {
 		tagger.Arg("--push")
-		tagger.PreInfo("Tagging and pushing " + img.Name + " with tags: " + strings.Join(img.Tags(), ", "))
+		tagger.PreInfo("Tagging and pushing " + img.UniqName() + " with tags: " + strings.Join(img.Tags(), ", "))
 	}
 
 	// builder.Arg("--output", "type=image,name=" + imageName) // required for multi-platform builds
 	tagger.Arg(img.BuildContextDir).
-		SetVerbose(b.flags.Verbose).
-		PreInfo("Tagging " + img.Name + " with tags: " + strings.Join(img.Tags(), ", "))
+		SetVerbose(b.flags.Verbose)
+
+	if !b.flags.Push {
+		tagger.PreInfo("Tagging " + img.UniqName() + " with tags: " + strings.Join(img.Tags(), ", "))
+	}
 	b.taggingTasks.AddTask(tagger)
 }
 
 func (b *BuildxBuilder) Remove(img *image.Image) {
 	remover := cmd.New("docker").Arg("image", "rm", "-f").
-		Arg(img.Name).
+		Arg(img.UniqName()).
 		SetVerbose(b.flags.Verbose)
 	b.cleanupTasks.AddTask(remover)
 }
@@ -140,10 +143,17 @@ func (b *BuildxBuilder) Run() error {
 	return nil
 }
 
-func (b *BuildxBuilder) Shutdown() error {
+func (b *BuildxBuilder) Terminate() error {
 	if b.flags.Build {
 		if err := b.cleanupTasks.Run(); err != nil {
 			return err
+		}
+	}
+
+	// Cleanup temporary dockerfiles
+	if b.flags.Delete {
+		for _, img := range b.images {
+			defer img.RemoveTemporaryDockerfile()
 		}
 	}
 

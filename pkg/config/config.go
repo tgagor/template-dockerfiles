@@ -28,7 +28,7 @@ type ImageConfig struct {
 	Excludes   []map[string]interface{} `yaml:"excludes"`
 	Tags       []string                 `yaml:"tags"`
 	Labels     map[string]string        `yaml:"labels"`
-	Args       map[string]string        `yaml:"args"`
+	BuildArgs  map[string]string        `yaml:"args"`
 	Platforms  []string                 `yaml:"platforms"`
 }
 

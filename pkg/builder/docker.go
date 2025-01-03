@@ -81,38 +81,36 @@ func (b *DockerBuilder) Queue(image *image.Image) {
 func (b *DockerBuilder) Build(img *image.Image) {
 	builder := cmd.New("docker").Arg("build").
 		Arg("-f", img.Dockerfile).
-		Arg("-t", img.Name).
+		Arg("-t", img.UniqName()).
 		Arg(labelsToArgs(img.Labels)...).
 		Arg(buildArgsToArgs(img.BuildArgs)...).
 		Arg(img.BuildContextDir).
-		PreInfo("Building " + img.Name).
+		PreInfo("Building " + img.UniqName()).
 		SetVerbose(b.flags.Verbose)
 	b.buildTasks.AddTask(builder)
 }
 
-// TODO: should I add a flag for original image (before squashing) removal?
-//
-//	they're unreferenced after squashing
+// FIXME: images before squashing became unreferenced after squashing, so we should remove them
 func (b *DockerBuilder) Squash(img *image.Image) {
-	containerName := "run-" + sanitizeForFileName(img.Name)
+	containerName := "run-" + sanitizeForFileName(img.UniqName())
 
 	runItFirst := cmd.New("docker").Arg("run").
 		Arg("--name", containerName).
-		Arg(img.Name).
+		Arg(img.UniqName()).
 		Arg("true").
 		SetVerbose(b.flags.Verbose)
 	b.squashRunImages.AddTask(runItFirst)
 
-	imgMetadata, err := InspectImage(img.Name)
+	imgMetadata, err := InspectImage(img.UniqName())
 	util.FailOnError(err, "Couldn't inspect Docker image.")
 	log.Debug().Interface("data", imgMetadata).Msg("Docker inspect result")
-	b.imageSizesBefore[img.Name] = imgMetadata[0].Size
+	b.imageSizesBefore[img.UniqName()] = imgMetadata[0].Size
 
 	tmpTarFile := containerName + ".tar"
 	exportIt := cmd.New("docker").Arg("export").
 		Arg(containerName).
 		Arg("-o", tmpTarFile).
-		PreInfo(fmt.Sprintf("Squashing %s", img.Name)).
+		PreInfo(fmt.Sprintf("Squashing %s", img.UniqName())).
 		SetVerbose(b.flags.Verbose)
 	b.squashExportImages.AddTask(exportIt)
 	b.cleanupTasks.AddTask(cmd.New("docker").Arg("rm").Arg("-f").Arg(containerName))
@@ -126,14 +124,14 @@ func (b *DockerBuilder) Squash(img *image.Image) {
 
 		// parsing CMD
 		if command, err := json.Marshal(item.Config.Cmd); err != nil {
-			log.Error().Err(err).Str("image", img.Name).Msg("Can't parse CMD")
+			log.Error().Err(err).Str("image", img.UniqName()).Msg("Can't parse CMD")
 		} else {
 			importIt.Arg("--change", "CMD "+string(command))
 		}
 
 		// parsing VOLUME
 		if vol, err := json.Marshal(item.Config.Volumes); err != nil {
-			log.Error().Err(err).Str("image", img.Name).Msg("Can't parse VOLUME")
+			log.Error().Err(err).Str("image", img.UniqName()).Msg("Can't parse VOLUME")
 		} else {
 			importIt.Arg("--change", "VOLUME "+string(vol))
 		}
@@ -145,7 +143,7 @@ func (b *DockerBuilder) Squash(img *image.Image) {
 
 		// parsing ENTRYPOINT
 		if entrypoint, err := json.Marshal(item.Config.Entrypoint); err != nil {
-			log.Error().Err(err).Str("image", img.Name).Msg("Can't parse ENTRYPOINT")
+			log.Error().Err(err).Str("image", img.UniqName()).Msg("Can't parse ENTRYPOINT")
 		} else {
 			importIt.Arg("--change", "CMD "+string(entrypoint))
 		}
@@ -155,7 +153,7 @@ func (b *DockerBuilder) Squash(img *image.Image) {
 			importIt.Arg("--change", "WORKDIR "+item.Config.WorkingDir)
 		}
 	}
-	importIt.Arg(tmpTarFile).Arg(img.Name).SetVerbose(b.flags.Verbose)
+	importIt.Arg(tmpTarFile).Arg(img.UniqName()).SetVerbose(b.flags.Verbose)
 	b.squashImportTarsToImgs.AddTask(importIt)
 	b.squashTempoaryTarFiles = append(b.squashTempoaryTarFiles, tmpTarFile)
 
@@ -167,7 +165,7 @@ func (b *DockerBuilder) Squash(img *image.Image) {
 func (b *DockerBuilder) Tag(img *image.Image) {
 	for _, tag := range img.Tags() {
 		tagger := cmd.New("docker").Arg("tag").
-			Arg(img.Name).
+			Arg(img.UniqName()).
 			Arg(tag).
 			PreInfo("Tagging " + tag).
 			SetVerbose(b.flags.Verbose)
@@ -189,7 +187,7 @@ func (b *DockerBuilder) Push(img *image.Image) {
 
 func (b *DockerBuilder) Remove(img *image.Image) {
 	remover := cmd.New("docker").Arg("image", "rm", "-f").
-		Arg(img.Name).
+		Arg(img.UniqName()).
 		SetVerbose(b.flags.Verbose)
 	b.cleanupTasks.AddTask(remover)
 }
@@ -271,10 +269,17 @@ func (b *DockerBuilder) runSquashing() error {
 	return nil
 }
 
-func (b *DockerBuilder) Shutdown() error {
+func (b *DockerBuilder) Terminate() error {
 	if b.flags.Build {
 		if err := b.cleanupTasks.Run(); err != nil {
 			return err
+		}
+	}
+
+	// Cleanup temporary dockerfiles
+	if b.flags.Delete {
+		for _, img := range b.images {
+			defer img.RemoveTemporaryDockerfile()
 		}
 	}
 

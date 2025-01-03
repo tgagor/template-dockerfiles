@@ -1,11 +1,11 @@
-package parser_test
+package image_test
 
 import (
 	"testing"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"github.com/tgagor/template-dockerfiles/pkg/parser"
+	"github.com/tgagor/template-dockerfiles/pkg/image"
 )
 
 // disable logging as it's trashing test's output
@@ -47,7 +47,7 @@ func TestTemplateString(t *testing.T) {
 
 	// Assert
 	for i, input := range inputStrings {
-		result, _ := parser.TemplateString(input, inputArgs[i])
+		result, _ := image.TemplateString(input, inputArgs[i])
 		assert.Equal(t, expected[i], result)
 	}
 }
@@ -71,7 +71,7 @@ func TestTemplateList(t *testing.T) {
 		"test-case-1",
 	}
 
-	result, err := parser.TemplateList(input, configSet)
+	result, err := image.TemplateList(input, configSet)
 	assert.Equal(t, expected, result)
 	assert.Nil(t, err)
 }
@@ -95,7 +95,7 @@ func TestTemplateMap(t *testing.T) {
 		"org.opencontainers.image.3.33.nama":   "alpine:3.33",
 	}
 
-	result, err := parser.TemplateMap(input, configSet)
+	result, err := image.TemplateMap(input, configSet)
 	assert.Equal(t, expected, result)
 	assert.Nil(t, err)
 }
