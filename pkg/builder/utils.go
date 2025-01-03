@@ -3,7 +3,6 @@ package builder
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -40,15 +39,6 @@ func InspectImage(image string) (DockerInspect, error) {
 	}
 
 	return inspect, nil
-}
-
-// FIXME: this metod is duplicated here and in parser.go
-func sanitizeForFileName(input string) string {
-	// Replace any character that is not a letter, number, or safe symbol (-, _) with an underscore
-	// FIXME: This can actually result in collisions if someones uses a lot of symbols in variables
-	// 		  But I didn't face it yet, maybe it's not a problem at all
-	reg := regexp.MustCompile(`[^a-zA-Z0-9-_\.]+`)
-	return reg.ReplaceAllString(input, "_")
 }
 
 func labelsToArgs(labels map[string]string) []string {

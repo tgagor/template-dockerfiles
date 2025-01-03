@@ -93,7 +93,7 @@ func (b *DockerBuilder) Build(img *image.Image) {
 
 // FIXME: images before squashing became unreferenced after squashing, so we should remove them
 func (b *DockerBuilder) Squash(img *image.Image) {
-	containerName := "run-" + sanitizeForFileName(img.UniqName())
+	containerName := "run-" + util.SanitizeForFileName(img.UniqName())
 
 	runItFirst := cmd.New("docker").Arg("run").
 		Arg("--name", containerName).

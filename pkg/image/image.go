@@ -222,15 +222,6 @@ func (i *Image) SetFlags(flags *config.Flags) *Image {
 	return i
 }
 
-func (i *Image) SetName(name string) *Image {
-	i.Name = name
-	return i
-}
-
-// func (i *Image) FullName() string {
-// 	return strings.ToLower(path.Join(i.Registry, i.Prefix, i.Name))
-// }
-
 func (i *Image) SetMaintainer(maintainer string) *Image {
 	if maintainer != "" {
 		i.Labels["maintainer"] = maintainer
@@ -340,16 +331,8 @@ func sanitizeForTag(input string) string {
 	return strings.Trim(reg.ReplaceAllString(input, "-"), "-")
 }
 
-func sanitizeForFileName(input string) string {
-	// Replace any character that is not a letter, number, or safe symbol (-, _) with an underscore
-	// FIXME: This can actually result in collisions if someone uses a lot of symbols in variables
-	// 		  But I didn't face it yet, maybe it's not a problem at all
-	reg := regexp.MustCompile(`[^a-zA-Z0-9-_\.]+`)
-	return reg.ReplaceAllString(input, "_")
-}
-
 func (i *Image) generateDockerfilePath() string {
 	dirname := filepath.Dir(i.DockerfileTemplate)
 	filename := strings.Trim(fmt.Sprintf("%s-%s.Dockerfile", i.Name, generateCombinationString(i.ConfigSet())), "-")
-	return filepath.Join(dirname, sanitizeForFileName(filename))
+	return filepath.Join(dirname, util.SanitizeForFileName(filename))
 }

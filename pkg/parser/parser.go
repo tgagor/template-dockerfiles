@@ -29,6 +29,8 @@ func Run(workdir string, cfg *config.Config, flags *config.Flags) error {
 			buildEngine = &builder.BuildxBuilder{}
 		// case "kaniko":
 		// 	buildEngine = &builder.KanikoBuilder{}
+		// case "podman":
+		// 	buildEngine = &builder.PodmanBuilder{}
 		default:
 			buildEngine = &builder.DockerBuilder{}
 		}
