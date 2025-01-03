@@ -31,7 +31,7 @@ func TestPrintVersion(t *testing.T) {
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	// should print version
-	assert.Regexp(t, "^[0-9]{1,}\\.[0-9]{1,}\\.[0-9]{1,}", out)
+	assert.Regexp(t, "^v?[0-9]{1,}\\.[0-9]{1,}\\.[0-9]{1,}", out)
 	assert.Nil(t, err)
 	code, err := shell.GetExitCodeForRunCommandError(err)
 	assert.Nil(t, err)
@@ -146,8 +146,7 @@ func TestCase3(t *testing.T) {
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.NotNil(t, err) // should fail
 
-	assert.Contains(t, out, "No 'tags' defined for image=test-case-3")
-	assert.Contains(t, out, "building without 'tags', would just overwrite images in place, which is pointless - add 'tags' block to continue")
+	assert.Contains(t, out, "no 'tags' defined for test-case-3 - add 'tags' block to continue")
 
 	// should fail
 	code, err := shell.GetExitCodeForRunCommandError(err)

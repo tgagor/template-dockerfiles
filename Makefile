@@ -15,6 +15,9 @@ build:
 		-ldflags="-X main.BuildVersion=$(VERSION)" \
 		-o bin/td ./cmd/td
 
+test: bin/td
+	go test -v ./...
+
 clean:
 	@rm -rfv bin
 	@find example -name '*.Dockerfile' -delete
