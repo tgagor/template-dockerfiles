@@ -15,7 +15,7 @@ import (
 func cmd(args ...string) shell.Command {
 	defaultArgs := []string{}
 	return shell.Command{
-		Command: "../bin/td",
+		Command: "go run ../cmd/td",
 		Args:    append(defaultArgs, args...),
 		Logger:  logger.Discard,
 	}
