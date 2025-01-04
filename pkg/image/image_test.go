@@ -210,7 +210,7 @@ func TestConfigSetGenerationCase9(t *testing.T) {
 			configSet := img.ConfigSet()
 			require.NotEmpty(t, configSet)
 
-			assert.NotEmpty(t, configSet["args"]) // because of default OCI labels
+			assert.NotEmpty(t, configSet["args"])
 			assert.Equal(t, configSet["alpine"], configSet["args"].(map[string]string)["BASEIMAGE"])
 			assert.Equal(t, configSet["timezone"], configSet["args"].(map[string]string)["TIMEZONE"])
 		}
