@@ -1,0 +1,30 @@
+---
+# global build options
+# they're just 'docker build' command flags
+options:
+  debug:
+
+images:
+  test-case-10a:
+    dockerfile: Dockerfile
+    variables:
+      alpine:
+        - "3.20"
+        - "3.21"
+    args:
+      BASEIMAGE: "{{ .alpine }}"
+    tags:
+      - test-case-10
+  test-case-10b:
+    # add more options
+    options:
+      ssh: default
+    dockerfile: Dockerfile
+    variables:
+      alpine:
+        - "3.20"
+        - "3.21"
+    args:
+      BASEIMAGE: "{{ .alpine }}"
+    tags:
+      - test-case-10

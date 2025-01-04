@@ -2,9 +2,9 @@ ARG BASEIMAGE="alpine"
 FROM alpine:$BASEIMAGE
 
 # set default file encoding to UTF-8
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV LC_ALL en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
 
 # do not store cache or temp files in image
 VOLUME /tmp /var/cache/apk /var/tmp /root/.cache
