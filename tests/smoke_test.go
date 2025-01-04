@@ -13,9 +13,9 @@ import (
 )
 
 func cmd(args ...string) shell.Command {
-	defaultArgs := []string{}
+	defaultArgs := []string{"run", "../cmd/td"}
 	return shell.Command{
-		Command: "go run ../cmd/td",
+		Command: "go",
 		Args:    append(defaultArgs, args...),
 		Logger:  logger.Discard,
 	}
@@ -31,7 +31,7 @@ func TestPrintVersion(t *testing.T) {
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	// should print version
-	assert.Regexp(t, "^v?[0-9]{1,}\\.[0-9]{1,}\\.[0-9]{1,}", out)
+	assert.Regexp(t, "^(v?[0-9]{1,}\\.[0-9]{1,}\\.[0-9]{1,})|(development)", out)
 	assert.Nil(t, err)
 	code, err := shell.GetExitCodeForRunCommandError(err)
 	assert.Nil(t, err)

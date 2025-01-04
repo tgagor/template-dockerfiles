@@ -146,8 +146,6 @@ jobs:
 
   unit-tests:
     name: unit tests
-    needs:
-      - build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -159,15 +157,8 @@ jobs:
         with:
           go-version: '~1.23.4'
 
-      - uses: actions/download-artifact@v4
-        with:
-          name: td-linux-amd64
-          path: ./bin
-
       - name: Run Unit Tests
         run: |
-          mv ./bin/td-linux-amd64 ./bin/td
-          chmod +x ./bin/td
           go test -v  ./...
 
   smoke-tests:
