@@ -14,7 +14,7 @@ type Config struct {
 	Maintainer      string                 `yaml:"maintainer"`
 	GlobalLabels    map[string]string      `yaml:"labels"`
 	GlobalPlatforms []string               `yaml:"platforms"`
-	GlobalOptions   []string               `yaml:"options"`
+	GlobalOptions   map[string]string      `yaml:"options"`
 	Images          map[string]ImageConfig `yaml:"images"`
 	ImageOrder      []string               `yaml:"-"` // To preserve the order of images
 }
@@ -31,7 +31,7 @@ type ImageConfig struct {
 	Labels     map[string]string        `yaml:"labels"`
 	BuildArgs  map[string]string        `yaml:"args"`
 	Platforms  []string                 `yaml:"platforms"`
-	Options    []string                 `yaml:"options"`
+	Options    map[string]string        `yaml:"options"`
 }
 
 func Load(filename string) (*Config, error) {

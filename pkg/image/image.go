@@ -28,7 +28,7 @@ type Image struct {
 	Labels             map[string]string
 	BuildArgs          map[string]string
 	Platforms          []string
-	Options            []string
+	Options            map[string]string
 	Flags              *config.Flags
 }
 
@@ -36,7 +36,7 @@ func New() *Image {
 	return &Image{
 		BuildArgs: map[string]string{},
 		Labels:    map[string]string{},
-		Options:   []string{},
+		Options:   map[string]string{},
 		Platforms: []string{},
 		tags:      []string{},
 		Variables: map[string]interface{}{},
@@ -54,8 +54,10 @@ func From(name string, cfg *config.Config, configSet map[string]interface{}, fla
 	maps.Copy(img.Variables, configSet)
 	img.updatePlatforms(cfg.GlobalPlatforms).
 		updatePlatforms(cfg.Images[name].Platforms)
-	img.updateOptions(cfg.GlobalOptions).
-		updateOptions(cfg.Images[name].Options)
+
+	// collect custom build options
+	maps.Copy(img.Options, cfg.GlobalOptions)
+	maps.Copy(img.Options, cfg.Images[name].Options)
 
 	// collect tags
 	img.tags = append(img.tags, cfg.Images[name].Tags...) // non templated yet
@@ -249,13 +251,6 @@ func (i *Image) updatePlatforms(platforms []string) *Image {
 	return i
 }
 
-func (i *Image) updateOptions(options []string) *Image {
-	if len(options) > 0 {
-		i.Options = options
-	}
-	return i
-}
-
 func (i *Image) SetDockerfileTemplate(templateFile string) *Image {
 	if templateFile != "" {
 		log.Debug().Str("dockerfile", templateFile).Msg("Processing")
@@ -292,16 +287,17 @@ func (i *Image) Equal(image *Image) bool {
 func isReservedKey(key string) bool {
 	switch key {
 	case
-		"image",
-		"registry",
-		"prefix",
-		"maintainer",
-		"tag",
-		"tags",
-		"labels",
 		"args",
 		"env",
-		"platforms":
+		"image",
+		"labels",
+		"maintainer",
+		"options",
+		"platforms",
+		"prefix",
+		"registry",
+		"tag",
+		"tags":
 		return true
 	}
 	return false

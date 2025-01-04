@@ -63,11 +63,16 @@ func platformsToArgs(platforms []string) []string {
 	return args
 }
 
-func optionsToArgs(options []string) []string {
+func optionsToArgs(options map[string]string) []string {
 	args := []string{}
 
-	for _, opt := range options {
-		args = append(args, strings.SplitN(opt, " ", 2)...)
+	for opt, val := range options {
+		if opt != "" && val != "" {
+			args = append(args, "--"+opt, val)
+		}
+		if opt != "" && val == "" {
+			args = append(args, "--"+opt)
+		}
 	}
 
 	return args
