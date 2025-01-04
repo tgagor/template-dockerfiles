@@ -80,6 +80,7 @@ func (b *DockerBuilder) Queue(image *image.Image) {
 
 func (b *DockerBuilder) Build(img *image.Image) {
 	builder := cmd.New("docker").Arg("build").
+		Arg(optionsToArgs(img.Options)...).
 		Arg("-f", img.Dockerfile).
 		Arg("-t", img.UniqName()).
 		Arg(labelsToArgs(img.Labels)...).
