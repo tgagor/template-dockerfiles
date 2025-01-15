@@ -195,8 +195,57 @@ func (b *DockerBuilder) Remove(imageName string) {
 	b.cleanupTasks.AddTask(remover)
 }
 
-func (b *DockerBuilder) Run() error {
-	// build images in parallel to fill the cache
+// func (b *DockerBuilder) Run() error {
+// 	// build images in parallel to fill the cache
+// 	if b.flags.Build {
+// 		for _, img := range b.images {
+// 			b.Build(img)
+// 		}
+
+// 		if err := b.buildTasks.Run(); err != nil {
+// 			return err
+// 		}
+// 	} else {
+// 		log.Warn().Msg("Skipping building images. Use --build flag to build images.")
+// 		return nil
+// 	}
+
+// 	// squash images
+// 	if b.flags.Build && b.flags.Squash {
+// 		for _, img := range b.images {
+// 			b.Squash(img)
+// 		}
+
+// 		if err := b.RunSquashing(); err != nil {
+// 			return err
+// 		}
+// 	}
+
+// 	// tag single threaded
+// 	if b.flags.Build {
+// 		for _, img := range b.images {
+// 			b.Tag(img)
+// 		}
+
+// 		if err := b.taggingTasks.Run(); err != nil {
+// 			return err
+// 		}
+// 	}
+
+// 	// push multi-threaded
+// 	if b.flags.Push {
+// 		for _, img := range b.images {
+// 			b.Push(img)
+// 		}
+
+// 		if err := b.pushTasks.Run(); err != nil {
+// 			return err
+// 		}
+// 	}
+// 	return nil
+// }
+
+func (b *DockerBuilder) RunBuilding() error {
 	if b.flags.Build {
 		for _, img := range b.images {
 			b.Build(img)
@@ -209,19 +258,45 @@ func (b *DockerBuilder) Run() error {
 		log.Warn().Msg("Skipping building images. Use --build flag to build images.")
 		return nil
 	}
+	return nil
+}
 
+func (b *DockerBuilder) RunSquashing() error {
 	// squash images
 	if b.flags.Build && b.flags.Squash {
 		for _, img := range b.images {
 			b.Squash(img)
 		}
 
-		if err := b.runSquashing(); err != nil {
+		defer util.RemoveFile(b.squashTempoaryTarFiles...)
+
+		if err := b.squashRunImages.Run(); err != nil {
 			return err
+		}
+		if err := b.squashExportImages.Run(); err != nil {
+			return err
+		}
+		if err := b.squashImportTarsToImgs.Run(); err != nil {
+			return err
+		}
+
+		for imageName, sizeBefore := range b.imageSizesBefore {
+			log.Debug().Str("image", imageName).Uint64("sizeBefore", sizeBefore).Msg("Squashing")
+			imgMetadata, err := InspectImage(imageName)
+			if err != nil {
+				return err
+			}
+			sizeAfter := imgMetadata[0].Size
+			percentage := float64(sizeAfter)*100/float64(sizeBefore) - 100
+			log.Info().Str("image", imageName).Str("was", util.ByteCountIEC(sizeBefore)).Str("is", util.ByteCountIEC(sizeAfter)).Str("reduction", fmt.Sprintf("%.1f%%", percentage)).Msg("Squashed")
 		}
 	}
 
-	// tag single threaded
+	return nil
+}
+
+func (b *DockerBuilder) RunTagging() error {
+	// single threaded tagging
 	if b.flags.Build {
 		for _, img := range b.images {
 			b.Tag(img)
@@ -231,8 +306,11 @@ func (b *DockerBuilder) Run() error {
 			return err
 		}
 	}
+	return nil
+}
 
-	// push multi-threaded
+func (b *DockerBuilder) RunPushing() error {
+	// multi-threaded push
 	if b.flags.Push {
 		for _, img := range b.images {
 			b.Push(img)
@@ -242,33 +320,6 @@ func (b *DockerBuilder) Run() error {
 			return err
 		}
 	}
-	return nil
-}
-
-func (b *DockerBuilder) runSquashing() error {
-	defer util.RemoveFile(b.squashTempoaryTarFiles...)
-
-	if err := b.squashRunImages.Run(); err != nil {
-		return err
-	}
-	if err := b.squashExportImages.Run(); err != nil {
-		return err
-	}
-	if err := b.squashImportTarsToImgs.Run(); err != nil {
-		return err
-	}
-
-	for imageName, sizeBefore := range b.imageSizesBefore {
-		log.Debug().Str("image", imageName).Uint64("sizeBefore", sizeBefore).Msg("Squashing")
-		imgMetadata, err := InspectImage(imageName)
-		if err != nil {
-			return err
-		}
-		sizeAfter := imgMetadata[0].Size
-		percentage := float64(sizeAfter)*100/float64(sizeBefore) - 100
-		log.Info().Str("image", imageName).Str("was", util.ByteCountIEC(sizeBefore)).Str("is", util.ByteCountIEC(sizeAfter)).Str("reduction", fmt.Sprintf("%.1f%%", percentage)).Msg("Squashed")
-	}
-
 	return nil
 }
 

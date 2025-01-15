@@ -24,19 +24,7 @@ func (p *BuildxEngine) Parse(cfg *config.Config, flags *config.Flags) error {
 		log.Debug().Str("image", name).Interface("config", imageCfg).Msg("Parsing")
 		log.Debug().Interface("excludes", imageCfg.Excludes).Msg("Excluded config sets")
 
-		var buildEngine builder.Builder
-		// Choose the build engine based on the flag
-		switch flags.Engine {
-		case "buildx":
-			buildEngine = &builder.BuildxBuilder{}
-		// case "kaniko":
-		// 	buildEngine = &builder.KanikoBuilder{}
-		// case "podman":
-		// 	buildEngine = &builder.PodmanBuilder{}
-		default:
-			buildEngine = &builder.DockerBuilder{}
-		}
-
+		buildEngine := &builder.BuildxBuilder{}
 		if err := buildEngine.Init(); err != nil {
 			log.Error().Err(err).Msg("Failed to initialize builder.")
 			return err

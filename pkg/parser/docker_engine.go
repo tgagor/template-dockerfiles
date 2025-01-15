@@ -24,19 +24,7 @@ func (p *DockerEngine) Parse(cfg *config.Config, flags *config.Flags) error {
 		log.Debug().Str("image", name).Interface("config", imageCfg).Msg("Parsing")
 		log.Debug().Interface("excludes", imageCfg.Excludes).Msg("Excluded config sets")
 
-		var buildEngine builder.Builder
-		// Choose the build engine based on the flag
-		switch flags.Engine {
-		case "buildx":
-			buildEngine = &builder.BuildxBuilder{}
-		// case "kaniko":
-		// 	buildEngine = &builder.KanikoBuilder{}
-		// case "podman":
-		// 	buildEngine = &builder.PodmanBuilder{}
-		default:
-			buildEngine = &builder.DockerBuilder{}
-		}
-
+		buildEngine := &builder.DockerBuilder{}
 		if err := buildEngine.Init(); err != nil {
 			log.Error().Err(err).Msg("Failed to initialize builder.")
 			return err
@@ -62,8 +50,24 @@ func (p *DockerEngine) Parse(cfg *config.Config, flags *config.Flags) error {
 		}
 
 		// execute the build queue
-		if err := buildEngine.Run(); err != nil {
+		if err := buildEngine.RunBuilding(); err != nil {
 			log.Error().Err(err).Msg("Building failed with error, check error above. Exiting.")
+			return err
+		}
+
+		// let squash it
+		if err := buildEngine.RunSquashing(); err != nil {
+			log.Error().Err(err).Msg("Squashing failed with error, check error above. Exiting.")
+			return err
+		}
+
+		// continue typical build
+		if err := buildEngine.RunTagging(); err != nil {
+			log.Error().Err(err).Msg("Tagging failed with error, check error above. Exiting.")
+			return err
+		}
+		if err := buildEngine.RunPushing(); err != nil {
+			log.Error().Err(err).Msg("Pushing images failed, check error above. Exiting.")
 			return err
 		}
 
