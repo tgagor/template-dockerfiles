@@ -67,13 +67,12 @@ func TestCase1(t *testing.T) {
 		"--no-color",
 		"--config", "test-1.yaml",
 		"--tag", "v1.1.1",
+		"--verbose",
 	)
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
-	// no --build flag in test
-	assert.NotNil(t, out)
-	// assert.Regexp(t, "Building.*image=test-case-1", out)
+	assert.Regexp(t, "Parsing.*image=test-case-1", out)
 
 	// command should not fail
 	code, err := shell.GetExitCodeForRunCommandError(err)
@@ -108,10 +107,8 @@ func TestCase2(t *testing.T) {
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
-	// no --build flag
-	assert.NotNil(t, out)
-	// assert.Regexp(t, "Building.*image=test-case-2", out)
-	// assert.Regexp(t, "Building.*image=test-case-2b", out)
+	assert.Regexp(t, "Parsing.*image=test-case-2", out)
+	assert.Regexp(t, "Parsing.*image=test-case-2b", out)
 
 	// not all of them match but should
 	assert.Contains(t, out, "\"maintainer\":\"Tomasz Gągor <tomasz@gagor.pl>\"")
@@ -166,13 +163,12 @@ func TestCase4(t *testing.T) {
 		"--config", "test-4.yaml",
 		"--tag", "v4.4.4",
 		"--delete",
+		"--verbose",
 	)
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
-	// no --build flag
-	assert.NotNil(t, out)
-	// assert.Regexp(t, "Building.*image=test-case-4", out)
+	assert.Regexp(t, "Parsing.*image=test-case-4", out)
 
 	// do not fail
 	code, err := shell.GetExitCodeForRunCommandError(err)
@@ -189,13 +185,12 @@ func TestCase5(t *testing.T) {
 		"--config", "test-5.yaml",
 		"--tag", "v5.5.5",
 		"--delete",
+		"--verbose",
 	)
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
-	// no --build flag
-	assert.NotNil(t, out)
-	// assert.Regexp(t, "Building.*image=test-case-5", out)
+	assert.Regexp(t, "Parsing.*image=test-case-5", out)
 
 	// do not fail
 	code, err := shell.GetExitCodeForRunCommandError(err)
@@ -211,13 +206,12 @@ func TestCase6(t *testing.T) {
 		"--config", "test-6.yaml",
 		"--tag", "v6.6.6",
 		"--delete",
+		"--verbose",
 	)
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
-	// no --build flags
-	assert.NotNil(t, out)
-	// assert.Regexp(t, "Building.*image=test-case-6", out)
+	assert.Regexp(t, "Parsing.*image=test-case-6", out)
 
 	// do not fail
 	code, err := shell.GetExitCodeForRunCommandError(err)
@@ -232,13 +226,12 @@ func TestCase7(t *testing.T) {
 		"--no-color",
 		"--config", "test-7.yaml",
 		"--delete",
+		"--verbose",
 	)
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
-	// no --build flag
-	assert.NotNil(t, out)
-	// assert.Regexp(t, "Building.*image=test-case-7", out)
+	assert.Regexp(t, "Parsing.*image=test-case-7", out)
 
 	// do not fail
 	code, err := shell.GetExitCodeForRunCommandError(err)
@@ -254,13 +247,12 @@ func TestCase8(t *testing.T) {
 		"--config", "test-8.yaml",
 		"--tag", "v8.8.8",
 		"--delete",
+		"--verbose",
 	)
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
-	// no --build flag
-	assert.NotNil(t, out)
-	// assert.Regexp(t, "Building.*image=test-case-8", out)
+	assert.Regexp(t, "Parsing.*image=test-case-8", out)
 	assert.Contains(t, out, "Skipping excluded config set=")
 
 	// do not fail
@@ -276,13 +268,12 @@ func TestCase9(t *testing.T) {
 		"--no-color",
 		"--config", "test-9.yaml",
 		"--tag", "v9.9.9",
+		"--verbose",
 	)
 
 	out, err := shell.RunCommandAndGetOutputE(t, cmd)
 	assert.Nil(t, err)
-	// no --build flag
-	assert.NotNil(t, out)
-	// assert.Regexp(t, "Building.*image=test-case-9", out)
+	assert.Regexp(t, "Parsing.*image=test-case-9", out)
 
 	// should generage args
 	// FIXME: amend after changes
