@@ -45,7 +45,7 @@ func (p *BuildxEngine) Parse(cfg *config.Config, flags *config.Flags) error {
 			}
 
 			// schedule for building
-			log.Info().Str("image", img.Name).Interface("config set", img.Representation()).Msg("Building")
+			log.Info().Str("image", img.Name).Interface("config set", img.Representation()).Msg("Processing")
 			buildEngine.Queue(img)
 		}
 

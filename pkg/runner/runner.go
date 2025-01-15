@@ -61,6 +61,10 @@ func (r *Runner) Threads(threads int) *Runner {
 	return r
 }
 
+func (r *Runner) GetTasks() []*cmd.Cmd {
+	return r.tasks
+}
+
 // func (r Runner) Run() error {
 // 	for _, c := range r.tasks {
 // 		if r.dryRun {
