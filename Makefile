@@ -19,16 +19,16 @@ test: bin/td
 	go test -v ./...
 
 $(GOBIN)/goimports:
-	@go install golang.org/x/tools/cmd/goimports@v0.28.0
+	@go install golang.org/x/tools/cmd/goimports@v0.32.0
 
 $(GOBIN)/gocyclo:
 	@go install github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0
 
 $(GOBIN)/golangci-lint:
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.63.4
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.1.1
 
 $(GOBIN)/gocritic:
-	@go install github.com/go-critic/go-critic/cmd/gocritic@v0.11.5
+	@go install github.com/go-critic/go-critic/cmd/gocritic@v0.13.0
 
 install-linters: $(GOBIN)/goimports $(GOBIN)/gocyclo $(GOBIN)/golangci-lint $(GOBIN)/gocritic
 
