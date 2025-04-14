@@ -19,24 +19,16 @@ test: bin/td
 	go test -v ./...
 
 $(GOBIN)/goimports:
-	@if [ ! -f $@ ]; then \
-		go install golang.org/x/tools/cmd/goimports@v0.32.0; \
-	fi
+	@go install golang.org/x/tools/cmd/goimports@v0.32.0
 
 $(GOBIN)/gocyclo:
-	@if [ ! -f $@ ]; then \
-		go install github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0; \
-	fi
+	@go install github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0
 
 $(GOBIN)/golangci-lint:
-	@if [ ! -f $@ ]; then \
-		go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8; \
-	fi
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
 
 $(GOBIN)/gocritic:
-	@if [ ! -f $@ ]; then \
-		go install github.com/go-critic/go-critic/cmd/gocritic@v0.13.0; \
-	fi
+	@go install github.com/go-critic/go-critic/cmd/gocritic@v0.13.0
 
 install-linters: $(GOBIN)/goimports $(GOBIN)/gocyclo $(GOBIN)/golangci-lint $(GOBIN)/gocritic
 	@echo "Linters installed successfully."
