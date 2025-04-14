@@ -201,6 +201,8 @@ func (i *Image) Representation() map[string]interface{} {
 			}
 		case int:
 			repr[key] = v
+		case bool:
+			repr[key] = v
 		case string:
 			if v != "" {
 				repr[key] = v
