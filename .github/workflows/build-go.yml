@@ -118,6 +118,8 @@ jobs:
       - id: vars
         run: |
           echo "GOBIN=$(go env GOPATH)/bin" >> "$GITHUB_OUTPUT"
+          echo "GOVERSION=$(go version | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+
       - name: Restore cached linting tools
         uses: actions/cache/restore@v4
         with:
