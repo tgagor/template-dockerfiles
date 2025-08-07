@@ -15,6 +15,7 @@ type Config struct {
 	GlobalLabels    map[string]string      `yaml:"labels"`
 	GlobalPlatforms []string               `yaml:"platforms"`
 	GlobalOptions   map[string]string      `yaml:"options"`
+	GlobalContext   string                 `yaml:"context"`
 	Images          map[string]ImageConfig `yaml:"images"`
 	ImageOrder      []string               `yaml:"-"` // To preserve the order of images
 }
@@ -32,6 +33,7 @@ type ImageConfig struct {
 	BuildArgs  map[string]string        `yaml:"args"`
 	Platforms  []string                 `yaml:"platforms"`
 	Options    map[string]string        `yaml:"options"`
+	Context    string                   `yaml:"context"`
 }
 
 func Load(filename string) (*Config, error) {
@@ -40,7 +42,11 @@ func Load(filename string) (*Config, error) {
 		log.Error().Err(err).Msg("Error loading config")
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Error().Err(err).Msg("Error closing config file")
+		}
+	}()
 
 	var cfg Config
 	if err := yaml.NewDecoder(file).Decode(&cfg); err != nil {

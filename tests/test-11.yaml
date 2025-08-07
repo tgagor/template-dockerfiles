@@ -1,0 +1,21 @@
+---
+# build context directory, usually where the Dockerfile is located
+context: .
+
+images:
+  test-case-9:
+    dockerfile: Dockerfile
+    # let hack it around to see if custom directories works
+    context: ../tests
+    variables:
+      alpine:
+        - "3.20"
+        - "3.21"
+      timezone:
+        - UTC
+        - EST
+    args:
+      BASEIMAGE: "{{ .alpine }}"
+      TIMEZONE: "{{ .timezone }}"
+    tags:
+      - test-case-9

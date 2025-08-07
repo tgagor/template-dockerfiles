@@ -31,7 +31,11 @@ func TemplateFile(templateFile string, destinationFile string, args map[string]i
 		log.Error().Err(err).Str("file", templateFile).Msg("Failed to create")
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			log.Error().Err(err).Msg("Error closing config file")
+		}
+	}()
 
 	// Render templates using variables
 	if err := t.Execute(f, args); err != nil {

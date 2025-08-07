@@ -59,6 +59,13 @@ func From(name string, cfg *config.Config, configSet map[string]interface{}, fla
 	maps.Copy(img.Options, cfg.GlobalOptions)
 	maps.Copy(img.Options, cfg.Images[name].Options)
 
+	// set build context directory
+	if cfg.GlobalContext != "" {
+		img.BuildContextDir = cfg.GlobalContext
+	} else if cfg.Images[name].Context != "" {
+		img.BuildContextDir = cfg.Images[name].Context
+	}
+
 	// collect tags
 	img.tags = append(img.tags, cfg.Images[name].Tags...) // non templated yet
 
@@ -134,7 +141,7 @@ func (i *Image) Validate() error {
 
 	// template Dockerfile
 	if i.Dockerfile == "" {
-		return fmt.Errorf("Dockerfile is required")
+		return fmt.Errorf("required Dockerfile is missing for image %s", i.Name)
 	}
 	if strings.HasSuffix(i.DockerfileTemplate, ".tpl") {
 		log.Debug().Str("dockerfile", i.Dockerfile).Msg("Generating temporary")
@@ -263,7 +270,10 @@ func (i *Image) SetDockerfileTemplate(templateFile string) *Image {
 		} else {
 			i.Dockerfile = i.DockerfileTemplate
 		}
-		i.BuildContextDir = filepath.Dir(i.DockerfileTemplate)
+		// If not provided in config, use Dockerfile location as build context
+		if i.BuildContextDir == "" {
+			i.BuildContextDir = filepath.Dir(i.DockerfileTemplate)
+		}
 	}
 	return i
 }
