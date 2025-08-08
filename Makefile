@@ -18,6 +18,11 @@ build:
 test: bin/td
 	go test -v ./...
 
+install: bin/td
+	@mkdir -p $(GOBIN)
+	@cp bin/td $(GOBIN)/td
+	@echo "Installed td to $(GOBIN)/td"
+
 $(GOBIN)/goimports:
 	@go install golang.org/x/tools/cmd/goimports@v0.32.0
 
