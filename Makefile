@@ -24,13 +24,13 @@ install: bin/td
 	@echo "Installed td to $(GOBIN)/td"
 
 $(GOBIN)/goimports:
-	@go install golang.org/x/tools/cmd/goimports@v0.32.0
+	@go install golang.org/x/tools/cmd/goimports@v0.35.0
 
 $(GOBIN)/gocyclo:
 	@go install github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0
 
 $(GOBIN)/golangci-lint:
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.3.0
 
 $(GOBIN)/gocritic:
 	@go install github.com/go-critic/go-critic/cmd/gocritic@v0.13.0
