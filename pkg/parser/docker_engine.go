@@ -39,14 +39,15 @@ func (p *DockerEngine) Parse(cfg *config.Config, flags *config.Flags) error {
 		combinations := GenerateVariableCombinations(imageCfg.Variables)
 		for _, rawConfigSet := range combinations {
 			img := image.From(name, cfg, rawConfigSet, flags)
-			if err := img.Validate(); err != nil {
-				return err
-			}
 
 			// skip excluded config sets
 			if isExcluded(img.ConfigSet(), imageCfg.Excludes) {
 				log.Warn().Interface("config set", img.Representation()).Interface("excludes", imageCfg.Excludes).Msg("Skipping excluded")
 				continue
+			}
+
+			if err := img.Validate(); err != nil {
+				return err
 			}
 
 			// schedule for building
