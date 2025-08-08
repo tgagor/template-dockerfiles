@@ -62,7 +62,8 @@ func From(name string, cfg *config.Config, configSet map[string]interface{}, fla
 	// set build context directory
 	if cfg.GlobalContext != "" {
 		img.BuildContextDir = cfg.GlobalContext
-	} else if cfg.Images[name].Context != "" {
+	}
+	if cfg.Images[name].Context != "" {
 		img.BuildContextDir = cfg.Images[name].Context
 	}
 

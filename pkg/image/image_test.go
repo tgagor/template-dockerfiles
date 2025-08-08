@@ -238,3 +238,21 @@ func TestConfigSetGenerationCase10(t *testing.T) {
 		}
 	}
 }
+
+func TestConfigSetGenerationCase11(t *testing.T) {
+	t.Parallel()
+
+	cfg := loadConfig("test-11.yaml")
+
+	for _, imageName := range cfg.ImageOrder {
+		combinations := parser.GenerateVariableCombinations(cfg.Images[imageName].Variables)
+		for _, set := range combinations {
+			img := image.From(imageName, cfg, set, &config.Flags{})
+			configSet := img.ConfigSet()
+			require.NotEmpty(t, configSet)
+
+			assert.NotEmpty(t, img.BuildContextDir)
+			assert.Equal(t, "../tests", img.BuildContextDir)
+		}
+	}
+}
