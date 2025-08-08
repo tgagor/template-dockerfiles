@@ -64,10 +64,12 @@ Start defining your build configuration file. It's a playbook by which your Dock
 registry: repo.local
 prefix: my-base
 maintainer: Awesome Developer <awesome@mail>
+context: ./base-context   # <-- global build context directory
 
 images:
   jdk:
     dockerfile: jdk/Dockerfile.tpl
+    context: ./jdk-context   # <-- per-image build context directory
     variables:
       alpine:
         - "3.19"
@@ -110,6 +112,24 @@ repo.local/my-base/jdk:21-alpine3
 
 This file format defines the configuration for dynamically generating Docker images using Jinja2 templates. It specifies global settings, image definitions, and build parameters.
 
+### **`context`** (Optional)
+- **Description**: The build context directory, which is the root directory sent to the Docker daemon during build. Can be set globally or per image. If set globally, applies to all images unless overridden per image.
+- **Type**: String
+- **Example**:
+  ```yaml
+  context: ./base-context
+  ```
+  Or per image:
+  ```yaml
+  images:
+    jdk:
+      context: ./jdk-context
+      dockerfile: jdk/Dockerfile.tpl
+      # ...existing code...
+  ```
+- **Notes**:
+  - Per-image `context` overrides the global `context` for that image.
+  - If not specified, defaults to the directory containing the Dockerfile.
 
 ### **`registry`** (Optional)
 - **Description**: The Docker registry to which images will be pushed. Skip to use Docker Hub.
@@ -210,6 +230,20 @@ Each image is identified by a key (e.g., `base`, `jdk`, `jre`) and contains the 
 - **Notes**:
   - I recommend to follow [OCI Label Schema](https://github.com/opencontainers/image-spec/blob/main/annotations.md), app will add some of them automatically.
   - Labels can be templated and they will override global labels of same name.
+
+### **`context`** (Optional)
+- **Description**: The build context directory for this image. Overrides global `context` if set.
+- **Type**: String
+- **Example**:
+  ```yaml
+  images:
+    jdk:
+      context: ./jdk-context
+      dockerfile: jdk/Dockerfile.tpl
+      # ...existing code...
+  ```
+- **Notes**:
+  - Useful for images that require a different set of files or build context than the global default.
 
 ## **Multi-Platform Builds**
 
@@ -363,4 +397,5 @@ All the variables available for templating:
   - `tag` - If `--tag` flag used.
   - `image` - A key from `images` in the config file, useful for conditions.
   -	`labels` - Some generated automatically, then from "global scope" (at the top of config file), merged with "per image" labels,
+  - `context` - The build context directory, either global or per image.
   - And finally, whatever you define in `variables` blocks.
