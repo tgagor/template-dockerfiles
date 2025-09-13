@@ -185,7 +185,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: ${{ matrix.binary }}
           path: .
@@ -236,7 +236,7 @@ jobs:
       - name: Extract version from tag on master
         run: echo "VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           # download all
           path: bin
