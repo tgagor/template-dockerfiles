@@ -73,6 +73,7 @@ runs:
         set -x
         curl -fLo /usr/local/bin/td https://github.com/tgagor/template-dockerfiles/releases/$VERSION/download/td-linux-$ARCH
         chmod +x /usr/local/bin/td
+        td --version
 
     - name: Check Template Dockerfiles version
       shell: bash
