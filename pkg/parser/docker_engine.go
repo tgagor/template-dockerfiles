@@ -96,8 +96,6 @@ func (p *DockerEngine) Parse(cfg *config.Config, flags *config.Flags) error {
 
 	// push only if everything builds
 	if flags.Push {
-		log.Error().Interface("push tasks", pusher.GetTasks()).Msg("here")
-
 		if err := pusher.Run(); err != nil {
 			log.Error().Err(err).Msg("Pushing images failed, check error above. Exiting.")
 			return err
