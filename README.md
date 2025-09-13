@@ -49,6 +49,27 @@ go install github.com/tgagor/template-dockerfiles/cmd/td@latest
 ```
 Ensure you have `GOPATH`, in your `PATH`.
 
+### **Github Action**
+
+You can also use it as a Github Action, just add to your workflow:
+
+```yaml
+    steps:
+      - name: Setup Template Dockerfiles
+        uses: tgagor/template-dockerfiles@main
+```
+By default this would install `latest` version for `amd64` architecture.
+
+For specific version or architecture:
+
+```yaml
+    steps:
+      - name: Setup Template Dockerfiles
+        uses: tgagor/template-dockerfiles@main
+        with:
+          version: v0.12.1
+          arch: arm64
+```
 
 ## **Example Configuration**
 

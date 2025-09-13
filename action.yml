@@ -5,10 +5,6 @@ inputs:
     description: Version of Template Dockerfiles to install
     required: false
     default: latest
-  architecture:
-    description: Target architecture for Template Dockerfiles
-    required: false
-    default: amd64
 outputs:
   installed-version:
     description: Installed version of Template Dockerfiles
@@ -16,11 +12,63 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Check Runner OS
+      if: ${{ runner.os != 'Linux' && runner.os != 'Windows' && runner.os != 'macOS'}}
+      shell: bash
+      run: |
+        echo "::error title=⛔ error hint::Supports Linux, Windows, and macOS Only"
+        exit 1
+    - name: Check Linux Runner Architecture
+      if: ${{ runner.os == 'Linux' && runner.arch != 'X64' && runner.arch != 'ARM64'}}
+      shell: bash
+      run: |
+        echo "::error title=⛔ error hint::On Linux only supported architecture are X64 and ARM64"
+        exit 1
+    - name: Check macOS Runner Architecture
+      if: ${{ runner.os == 'macOS' && runner.arch != 'X64' && runner.arch != 'ARM64'}}
+      shell: bash
+      run: |
+        echo "::error title=⛔ error hint::On macOS only supported architecture are X64 and ARM64"
+        exit 1
+    - name: Check Windows Runner Architecture
+      if: ${{ runner.os == 'Windows' && runner.arch != 'X64'}}
+      shell: bash
+      run: |
+        echo "::error title=⛔ error hint::On Windows only supported architecture is X64"
+        exit 1
+
+    - name: Guess Architecture - Linux
+      if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
+      shell: bash
+      run: |
+        if [ ${{ runner.arch }} = "ARM64" ]; then
+          ARCH="arm64"
+        elif [ ${{ runner.arch }} = "ARM" ]; then
+          ARCH="arm"
+        elif [ ${{ runner.arch }} = "X86" ]; then
+          ARCH="386"
+        else
+          ARCH="amd64"
+        fi
+        echo "ARCH=$ARCH" >> $GITHUB_ENV
+
+    - name: Guess Architecture - Windows
+      if: ${{ runner.os == 'Windows' }}
+      shell: bash
+      run: |
+        if [ ${{ runner.arch }} = "ARM64" ]; then
+          ARCH="arm64"
+        elif [ ${{ runner.arch }} = "X86" ]; then
+          ARCH="x86"
+        else
+          ARCH="amd64"
+        fi
+        echo "ARCH=$ARCH" >> $GITHUB_ENV
+
     - name: Fetch Template Dockerfiles
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
-        ARCH: ${{ inputs.architecture }}
       run: |
         set -x
         curl -fLo /usr/local/bin/td https://github.com/tgagor/template-dockerfiles/releases/$VERSION/download/td-linux-$ARCH
