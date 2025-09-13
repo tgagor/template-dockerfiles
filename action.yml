@@ -1,0 +1,32 @@
+name: Template Dockerfiles Action
+description: Fetches and configures Template Dockerfiles tool
+inputs:
+  version:
+    description: Version of Template Dockerfiles to install
+    required: false
+    default: latest
+  architecture:
+    description: Target architecture for Template Dockerfiles
+    required: false
+    default: amd64
+outputs:
+  installed-version:
+    description: Installed version of Template Dockerfiles
+    value: ${{ steps.td-version.outputs.installed-version }}
+runs:
+  using: composite
+  steps:
+    - name: Fetch Template Dockerfiles
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        ARCH: ${{ inputs.architecture }}
+      run: |
+        set -x
+        curl -fLo /usr/local/bin/td https://github.com/tgagor/template-dockerfiles/releases/$VERSION/download/td-linux-$ARCH
+        chmod +x /usr/local/bin/td
+
+    - name: Check Template Dockerfiles version
+      shell: bash
+      id: td-version
+      run: echo "installed-version=$(td --version)" >> $GITHUB_OUTPUT
