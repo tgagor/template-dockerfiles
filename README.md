@@ -243,8 +243,8 @@ Each image is identified by a key (e.g., `base`, `jdk`, `jre`) and contains the 
 - **Example**:
   ```yaml
   labels:
-    - org.opencontainers.image.base.name: alpine:{{ .alpine }}
-    - org.opencontainers.image.description: |
+    org.opencontainers.image.base.name: alpine:{{ .alpine }}
+    org.opencontainers.image.description: |
      Human-readable description of the software packaged in the image.
      (multiline string).
   ```
