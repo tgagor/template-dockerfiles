@@ -182,9 +182,9 @@ This file format defines the configuration for dynamically generating Docker ima
 - **Example**:
   ```yaml
   labels:
-    - org.opencontainers.image.licenses: License(s) under which contained software is distributed as an [SPDX License Expression](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/).
-    - org.opencontainers.image.title: Human-readable title of the image (string).
-    - org.opencontainers.image.description: |
+    org.opencontainers.image.licenses: License(s) under which contained software is distributed as an [SPDX License Expression](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/).
+    org.opencontainers.image.title: Human-readable title of the image (string).
+    org.opencontainers.image.description: |
      Human-readable description of the software packaged in the image.
      (multiline string).
   ```
