@@ -192,6 +192,20 @@ This file format defines the configuration for dynamically generating Docker ima
   - I recommend to follow [OCI Label Schema](https://github.com/opencontainers/image-spec/blob/main/annotations.md), app will add some of them automatically.
   - Even those labels can be templated, but as they're global, you should only use variables available in all images. Otherwise they might be evaluated to: `<no value>`, unless you filter those out with additional conditions.
 
+
+### **`options`** (Optional)
+- **Description**: Global options that would be added to build command.
+- **Type**: List of strings
+- **Example**:
+  ```yaml
+  options:
+    - "--debug"
+    - "--cache-from=type=gha,scope=default"
+    - "--progress=plain"
+  ```
+- **Notes**:
+  - Options support templating in a similar way to labels, allowing to add them globally but automatically adapt to each image.
+
 ## **Images Section**
 
 ### **`images`** (Required)
@@ -251,6 +265,19 @@ Each image is identified by a key (e.g., `base`, `jdk`, `jre`) and contains the 
 - **Notes**:
   - I recommend to follow [OCI Label Schema](https://github.com/opencontainers/image-spec/blob/main/annotations.md), app will add some of them automatically.
   - Labels can be templated and they will override global labels of same name.
+
+### **`options`** (Optional)
+- **Description**: Per image build options, that would be added to build of specific image.
+- **Type**: List of strings
+- **Example**:
+  ```yaml
+  options:
+    - "--cache-from=type=gha,scope=alpine-{{ .alpine }}"
+    - "--cache-to=type=gha,scope=alpine-{{ .alpine }},mode=max"
+  ```
+- **Notes**:
+  - Setting per image `options` overwrites any global `options`.
+  - Options support templating, in the example above `alpine` have to be defined under `variables`.
 
 ### **`context`** (Optional)
 - **Description**: The build context directory for this image. Overrides global `context` if set.
