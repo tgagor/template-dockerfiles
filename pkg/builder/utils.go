@@ -62,18 +62,3 @@ func platformsToArgs(platforms []string) []string {
 	args = append(args, "--platform", strings.Join(platforms, ","))
 	return args
 }
-
-func optionsToArgs(options map[string]string) []string {
-	args := []string{}
-
-	for opt, val := range options {
-		if opt != "" && val != "" {
-			args = append(args, "--"+opt, val)
-		}
-		if opt != "" && val == "" {
-			args = append(args, "--"+opt)
-		}
-	}
-
-	return args
-}

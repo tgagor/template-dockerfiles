@@ -60,7 +60,7 @@ func (b *BuildxBuilder) Build(img *image.Image) {
 	if len(img.Platforms) > 0 {
 		builder.Arg(platformsToArgs(img.Platforms)...)
 	}
-	builder.Arg(optionsToArgs(img.Options)...).
+	builder.Arg(img.Options...).
 		Arg("-f", img.Dockerfile).
 		Arg("-t", img.UniqName()).
 		Arg(labelsToArgs(img.Labels)...).

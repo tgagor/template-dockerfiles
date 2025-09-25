@@ -28,7 +28,7 @@ type Image struct {
 	Labels             map[string]string
 	BuildArgs          map[string]string
 	Platforms          []string
-	Options            map[string]string
+	Options            []string
 	Flags              *config.Flags
 }
 
@@ -36,7 +36,7 @@ func New() *Image {
 	return &Image{
 		BuildArgs: map[string]string{},
 		Labels:    map[string]string{},
-		Options:   map[string]string{},
+		Options:   []string{},
 		Platforms: []string{},
 		tags:      []string{},
 		Variables: map[string]interface{}{},
@@ -52,12 +52,12 @@ func From(name string, cfg *config.Config, configSet map[string]interface{}, fla
 	img.Flags = flags
 	img.Version = flags.Tag
 	maps.Copy(img.Variables, configSet)
-	img.updatePlatforms(cfg.GlobalPlatforms).
-		updatePlatforms(cfg.Images[name].Platforms)
+	img.setPlatforms(cfg.GlobalPlatforms).
+		setPlatforms(cfg.Images[name].Platforms)
 
 	// collect custom build options
-	maps.Copy(img.Options, cfg.GlobalOptions)
-	maps.Copy(img.Options, cfg.Images[name].Options)
+	img.setOptions(cfg.GlobalOptions)
+	img.setOptions(cfg.Images[name].Options)
 
 	// set build context directory
 	if cfg.GlobalContext != "" {
@@ -138,6 +138,13 @@ func (i *Image) Validate() error {
 		return err
 	} else {
 		maps.Copy(i.BuildArgs, templatedBuildArgs)
+	}
+
+	// template options
+	if templatedOptions, err := TemplateList(i.Options, i.ConfigSet()); err != nil {
+		return err
+	} else {
+		i.Options = templatedOptions
 	}
 
 	// template Dockerfile
@@ -254,9 +261,16 @@ func (i *Image) SetMaintainer(maintainer string) *Image {
 	return i
 }
 
-func (i *Image) updatePlatforms(platforms []string) *Image {
+func (i *Image) setPlatforms(platforms []string) *Image {
 	if len(platforms) > 0 {
 		i.Platforms = platforms
+	}
+	return i
+}
+
+func (i *Image) setOptions(options []string) *Image {
+	if len(options) > 0 {
+		i.Options = options
 	}
 	return i
 }

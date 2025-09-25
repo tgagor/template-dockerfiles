@@ -230,10 +230,17 @@ func TestConfigSetGenerationCase10(t *testing.T) {
 			require.NotEmpty(t, configSet)
 
 			assert.NotEmpty(t, img.Options)
-			assert.Equal(t, "", img.Options["debug"])
+			// those are global defaults
+			if imageName == "test-case-10a" {
+				assert.Contains(t, img.Options, "--progress=plain")
+				assert.Contains(t, img.Options, "--debug")
+				assert.Contains(t, img.Options, "--cache-from=type=gha,scope=default")
+			}
 
+			// here we overwrite global defaults
 			if imageName == "test-case-10b" {
-				assert.Equal(t, "default", img.Options["ssh"])
+				assert.Contains(t, img.Options, "--cache-from=type=gha,scope=alpine-{{ .alpine }}")
+				assert.Contains(t, img.Options, "--cache-to=type=gha,scope=alpine-{{ .alpine }},mode=max")
 			}
 		}
 	}

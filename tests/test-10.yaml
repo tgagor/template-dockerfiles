@@ -2,7 +2,9 @@
 # global build options
 # they're just 'docker build' command flags
 options:
-  debug:
+  - "--debug"
+  - "--cache-from=type=gha,scope=default"
+  - "--progress=plain"
 
 images:
   test-case-10a:
@@ -16,9 +18,10 @@ images:
     tags:
       - test-case-10
   test-case-10b:
-    # add more options
+    # override options per image
     options:
-      ssh: default
+      - "--cache-from=type=gha,scope=alpine-{{ .alpine }}"
+      - "--cache-to=type=gha,scope=alpine-{{ .alpine }},mode=max"
     dockerfile: Dockerfile
     variables:
       alpine:
