@@ -3,7 +3,7 @@
 context: .
 
 images:
-  test-case-9:
+  test-case-11:
     dockerfile: Dockerfile
     # let hack it around to see if custom directories works
     context: ../tests
