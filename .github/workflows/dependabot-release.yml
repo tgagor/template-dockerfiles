@@ -1,0 +1,19 @@
+# This workflow triggers the release job after a Dependabot PR is auto-merged by the main workflow.
+name: Release after Dependabot Merge
+
+on:
+  workflow_run:
+    workflows: ["Build & Tests"]
+    types:
+      - completed
+
+jobs:
+  release:
+    if: >
+      ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Dispatch event to trigger rebuild
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          event-type: dependabot-merge-event

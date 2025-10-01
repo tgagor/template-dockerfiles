@@ -1,6 +1,8 @@
 name: Build & Tests
 
 on:
+  repository_dispatch:
+    types: [dependabot-merge-event]
   push:
     paths-ignore:
       - 'README.md'
