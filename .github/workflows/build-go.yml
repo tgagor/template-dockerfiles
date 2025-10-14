@@ -266,6 +266,26 @@ jobs:
             gh release upload "${{ steps.tag_version.outputs.new_tag }}" "$asset"
           done
 
+      - name: Move major version tag
+        run: |
+          VERSION_TAG=${{ steps.tag_version.outputs.new_tag }}
+
+          if [ -z "$VERSION_TAG" ]; then
+            echo "No version tag found on this commit, skipping."
+            exit 0
+          fi
+
+          echo "Found version tag: $VERSION_TAG"
+
+          VERSION="${VERSION_TAG#v}"      # e.g. 1.2.3
+          MAJOR="${VERSION%%.*}"          # e.g. 1
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git tag -f "v$MAJOR"
+          git push origin "v$MAJOR" --force
+
   dependabot:
     runs-on: ubuntu-latest
     needs:
