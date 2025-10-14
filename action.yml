@@ -1,5 +1,8 @@
 name: Template Dockerfiles Action
 description: Fetches and configures Template Dockerfiles tool
+branding:
+  icon: package
+  color: green
 inputs:
   version:
     description: Version of Template Dockerfiles to install
