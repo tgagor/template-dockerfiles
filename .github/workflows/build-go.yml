@@ -36,7 +36,7 @@ jobs:
     - name: Setup GoLang
       uses: actions/setup-go@v6
       with:
-        go-version: '~1.25.1'
+        go-version: '~1.25.2'
 
     # - name: Run vet & lint
     #   run: |
@@ -107,7 +107,7 @@ jobs:
       - name: Setup GoLang
         uses: actions/setup-go@v6
         with:
-          go-version: '~1.25.1'
+          go-version: '~1.25.2'
 
       - id: vars
         run: |
@@ -151,7 +151,7 @@ jobs:
       - name: Setup GoLang
         uses: actions/setup-go@v6
         with:
-          go-version: '~1.25.1'
+          go-version: '~1.25.2'
 
       - name: Run Unit Tests
         run: |
