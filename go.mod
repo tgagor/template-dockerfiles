@@ -7,7 +7,7 @@ toolchain go1.24.6
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/go-git/go-git/v5 v5.16.2
-	github.com/gruntwork-io/terratest v0.51.0
+	github.com/gruntwork-io/terratest v0.52.0
 	github.com/mattn/go-colorable v0.1.14
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/cobra v1.10.1
@@ -45,8 +45,8 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	golang.org/x/crypto v0.37.0 // indirect
-	golang.org/x/net v0.39.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/crypto v0.41.0 // indirect
+	golang.org/x/net v0.43.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )
