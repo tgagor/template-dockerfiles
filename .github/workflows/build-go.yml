@@ -12,6 +12,7 @@ on:
       - feature/*
       - bugfix/*
   pull_request:
+    types: [closed]
     branches:
       - main
 
