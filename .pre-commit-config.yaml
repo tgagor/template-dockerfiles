@@ -29,8 +29,14 @@ repos:
   - repo: local
     hooks:
       - id: go-vet
-        name: 'go vet'
+        name: "go vet"
         entry: run-go-vet.sh
         files: '\.go$'
-        language: 'script'
+        language: "script"
         description: "Runs `go vet`, requires golang"
+      - id: go-fix
+        name: "go fix"
+        entry: run-go-fix.sh
+        files: '\.go$'
+        language: "script"
+        description: "Runs `go fix`, requires golang"
