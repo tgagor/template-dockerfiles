@@ -68,7 +68,15 @@ runs:
         fi
         echo "ARCH=$ARCH" >> $GITHUB_ENV
 
+    - name: Cache Template Dockerfiles binary
+      id: td-cache
+      uses: actions/cache@v5
+      with:
+        path: /usr/local/bin/td
+        key: td-${{ runner.os }}-${{ inputs.version }}-${{ env.ARCH }}
+
     - name: Fetch Template Dockerfiles
+      if: steps.td-cache.outputs.cache-hit != 'true'
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
