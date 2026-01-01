@@ -118,7 +118,7 @@ jobs:
           echo "GOVERSION=$(go version | awk '{print $3}')" >> "$GITHUB_OUTPUT"
 
       - name: Restore cached linting tools
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             ${{ steps.vars.outputs.GOBIN }}/goimports
@@ -132,7 +132,7 @@ jobs:
           make install-linters
 
       - name: Update cache of linting tools
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: |
             ${{ steps.vars.outputs.GOBIN }}/goimports
