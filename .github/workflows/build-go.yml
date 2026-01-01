@@ -5,8 +5,8 @@ on:
     types: [dependabot-merge-event]
   push:
     paths-ignore:
-      - 'README.md'
-      - 'CONTRIBUTING.md'
+      - "README.md"
+      - "CONTRIBUTING.md"
     branches:
       - main
       - feature/*
@@ -14,6 +14,10 @@ on:
   pull_request:
     branches:
       - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 defaults:
   run:
@@ -33,71 +37,71 @@ jobs:
           - os: windows
             arch: arm64 # Windows ARM64 is not supported by Go
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v6
+      - name: Checkout Code
+        uses: actions/checkout@v6
 
-    - name: Setup GoLang
-      uses: actions/setup-go@v6
-      with:
-        go-version: '1.25'
+      - name: Setup GoLang
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
 
-    # - name: Run vet & lint
-    #   run: |
-    #     go install golang.org/x/lint/golint@latest
-    #     go vet cmd
-    #     golint cmd
+      # - name: Run vet & lint
+      #   run: |
+      #     go install golang.org/x/lint/golint@latest
+      #     go vet cmd
+      #     golint cmd
 
-    - name: Guess next version
-      id: guessed_tag_version
-      uses: mathieudutour/github-tag-action@v6.2
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        dry_run: true
-        append_to_pre_release_tag: pre
-    - name: Extract version from tag
-      env:
-        VERSION_TAG: ${{ steps.guessed_tag_version.outputs.new_tag }}
-      run: echo "VERSION=$(echo $VERSION_TAG | sed -e "s/^v//" -e "s/-.*$//")" >> $GITHUB_ENV
+      - name: Guess next version
+        id: guessed_tag_version
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          dry_run: true
+          append_to_pre_release_tag: pre
+      - name: Extract version from tag
+        env:
+          VERSION_TAG: ${{ steps.guessed_tag_version.outputs.new_tag }}
+        run: echo "VERSION=$(echo $VERSION_TAG | sed -e "s/^v//" -e "s/-.*$//")" >> $GITHUB_ENV
 
-    - name: Build
-      id: build
-      env:
-        GOOS: ${{ matrix.os }}
-        GOARCH: ${{ matrix.arch }}
-      run: |
-        set -x
-        go version
+      - name: Build
+        id: build
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          set -x
+          go version
 
-        export CGO_ENABLED=0
+          export CGO_ENABLED=0
 
-        OUTPUT_NAME=td-${{ matrix.os }}-${{ matrix.arch }}
-        if [ "${{ matrix.os }}" == "windows" ]; then
-          OUTPUT_NAME+=".exe"
-        fi
-        if [ "${{ matrix.os }}" == "darwin" ]; then
-          OUTPUT_NAME=td-macos-${{ matrix.arch }}
-        fi
-        go build \
-          -ldflags="-X main.BuildVersion=${VERSION}" \
-          -o bin/$OUTPUT_NAME \
-          ./cmd/td
+          OUTPUT_NAME=td-${{ matrix.os }}-${{ matrix.arch }}
+          if [ "${{ matrix.os }}" == "windows" ]; then
+            OUTPUT_NAME+=".exe"
+          fi
+          if [ "${{ matrix.os }}" == "darwin" ]; then
+            OUTPUT_NAME=td-macos-${{ matrix.arch }}
+          fi
+          go build \
+            -ldflags="-X main.BuildVersion=${VERSION}" \
+            -o bin/$OUTPUT_NAME \
+            ./cmd/td
 
-        echo "binary=${OUTPUT_NAME}" >> "$GITHUB_OUTPUT"
+          echo "binary=${OUTPUT_NAME}" >> "$GITHUB_OUTPUT"
 
-    - name: Run UPX
-      uses: crazy-max/ghaction-upx@v3
-      # macos is not supported
-      if: ${{ matrix.os != 'darwin' }}
-      with:
-        version: latest
-        files: |
-          ./bin/*
-        args: -fq
+      - name: Run UPX
+        uses: crazy-max/ghaction-upx@v3
+        # macos is not supported
+        if: ${{ matrix.os != 'darwin' }}
+        with:
+          version: latest
+          files: |
+            ./bin/*
+          args: -fq
 
-    - uses: actions/upload-artifact@v6
-      with:
-        name: ${{ steps.build.outputs.binary }}
-        path: bin/*
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ${{ steps.build.outputs.binary }}
+          path: bin/*
 
   pre-commit:
     name: pre-commit checks
@@ -110,7 +114,7 @@ jobs:
       - name: Setup GoLang
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25'
+          go-version: "1.25"
 
       - id: vars
         run: |
@@ -154,7 +158,7 @@ jobs:
       - name: Setup GoLang
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25'
+          go-version: "1.25"
 
       - name: Run Unit Tests
         run: |
@@ -310,4 +314,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh pr review --approve "$PR_URL"
+
 # gh pr merge --squash --auto "$PR_URL"
