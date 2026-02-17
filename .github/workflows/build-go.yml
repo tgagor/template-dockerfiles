@@ -88,15 +88,15 @@ jobs:
 
           echo "binary=${OUTPUT_NAME}" >> "$GITHUB_OUTPUT"
 
-      - name: Run UPX
-        uses: crazy-max/ghaction-upx@v3
-        # macos is not supported
-        if: ${{ matrix.os != 'darwin' }}
-        with:
-          version: latest
-          files: |
-            ./bin/*
-          args: -fq
+      # - name: Run UPX
+      #   uses: crazy-max/ghaction-upx@v3
+      #   # macos is not supported
+      #   if: ${{ matrix.os != 'darwin' }}
+      #   with:
+      #     version: latest
+      #     files: |
+      #       ./bin/*
+      #     args: -fq
 
       - uses: actions/upload-artifact@v6
         with:
