@@ -22,7 +22,7 @@ type Image struct {
 	DockerfileTemplate string
 	Dockerfile         string
 	BuildContextDir    string
-	Variables          map[string]interface{}
+	Variables          map[string]any
 	tags               []string
 	Version            string
 	Labels             map[string]string
@@ -39,11 +39,11 @@ func New() *Image {
 		Options:   []string{},
 		Platforms: []string{},
 		tags:      []string{},
-		Variables: map[string]interface{}{},
+		Variables: map[string]any{},
 	}
 }
 
-func From(name string, cfg *config.Config, configSet map[string]interface{}, flags *config.Flags) *Image {
+func From(name string, cfg *config.Config, configSet map[string]any, flags *config.Flags) *Image {
 	img := New()
 
 	img.Name = name
@@ -162,8 +162,8 @@ func (i *Image) Validate() error {
 	return nil
 }
 
-func (i *Image) ConfigSet() map[string]interface{} {
-	configSet := make(map[string]interface{})
+func (i *Image) ConfigSet() map[string]any {
+	configSet := make(map[string]any)
 	configSet["image"] = i.Name
 	configSet["registry"] = i.Registry
 	configSet["prefix"] = i.Prefix
@@ -180,7 +180,7 @@ func (i *Image) ConfigSet() map[string]interface{} {
 	return configSet
 }
 
-func (i *Image) Representation() map[string]interface{} {
+func (i *Image) Representation() map[string]any {
 	repr := i.ConfigSet()
 	delete(repr, "env")
 	if !i.Flags.Verbose {
@@ -190,7 +190,7 @@ func (i *Image) Representation() map[string]interface{} {
 
 	for key, value := range repr {
 		switch v := value.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			if len(v) > 0 {
 				repr[key] = v
 			} else {
@@ -202,7 +202,7 @@ func (i *Image) Representation() map[string]interface{} {
 			} else {
 				delete(repr, key)
 			}
-		case []interface{}:
+		case []any:
 			if len(v) > 0 {
 				repr[key] = v
 			} else {
@@ -347,7 +347,7 @@ func isAllowedPlatform(platform string) bool {
 	return false
 }
 
-func generateCombinationString(configSet map[string]interface{}) string {
+func generateCombinationString(configSet map[string]any) string {
 	var parts []string
 	for k, v := range configSet {
 		if !isReservedKey(k) {

@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func TemplateString(pattern string, args map[string]interface{}) (string, error) {
+func TemplateString(pattern string, args map[string]any) (string, error) {
 	var output bytes.Buffer
 	t := template.Must(template.New(pattern).Funcs(sprig.TxtFuncMap()).Parse(pattern))
 	if err := t.Execute(&output, args); err != nil {
@@ -21,7 +21,7 @@ func TemplateString(pattern string, args map[string]interface{}) (string, error)
 	return output.String(), nil
 }
 
-func TemplateFile(templateFile string, destinationFile string, args map[string]interface{}) error {
+func TemplateFile(templateFile string, destinationFile string, args map[string]any) error {
 	t := template.Must(
 		template.New(filepath.Base(templateFile)).Funcs(sprig.TxtFuncMap()).ParseFiles(templateFile),
 	)
@@ -46,7 +46,7 @@ func TemplateFile(templateFile string, destinationFile string, args map[string]i
 	return nil
 }
 
-func TemplateList(source []string, configSet map[string]interface{}) ([]string, error) {
+func TemplateList(source []string, configSet map[string]any) ([]string, error) {
 	var templated []string
 
 	for _, label := range source {
@@ -64,7 +64,7 @@ func TemplateList(source []string, configSet map[string]interface{}) ([]string, 
 	return templated, nil
 }
 
-func TemplateMap(source map[string]string, configSet map[string]interface{}) (map[string]string, error) {
+func TemplateMap(source map[string]string, configSet map[string]any) (map[string]string, error) {
 	templated := map[string]string{}
 
 	for label, value := range source {

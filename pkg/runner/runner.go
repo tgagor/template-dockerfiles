@@ -104,10 +104,8 @@ func (r *Runner) Run() error {
 	log.Debug().Int("threads", threads).Int("max", max(r.threads, len(r.tasks))).Msg("Aquired parallelism")
 
 	// Start the specified number of workers.
-	for i := 0; i < threads; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range threads {
+		wg.Go(func() {
 			for c := range tasks {
 				// Check if the context is canceled
 				select {
@@ -128,7 +126,7 @@ func (r *Runner) Run() error {
 					}
 				}
 			}
-		}()
+		})
 	}
 
 	// When workers are done, close results so that main will exit.

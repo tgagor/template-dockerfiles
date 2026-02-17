@@ -19,8 +19,8 @@ func TestCombinationsCase1(t *testing.T) {
 
 	inputs := loadConfig("test-1.yaml").Images
 
-	expected := map[string]interface{}{
-		"test-case-1": []map[string]interface{}{
+	expected := map[string]any{
+		"test-case-1": []map[string]any{
 			{
 				"alpine":    "3.18",
 				"multiword": "kuku ruku",
@@ -47,8 +47,8 @@ func TestCombinationsCase2(t *testing.T) {
 
 	inputs := loadConfig("test-2.yaml").Images
 
-	expected := map[string]interface{}{
-		"test-case-2": []map[string]interface{}{
+	expected := map[string]any{
+		"test-case-2": []map[string]any{
 			{
 				"alpine": "3.18",
 			},
@@ -59,7 +59,7 @@ func TestCombinationsCase2(t *testing.T) {
 				"alpine": "3.20",
 			},
 		},
-		"test-case-2b": []map[string]interface{}{
+		"test-case-2b": []map[string]any{
 			{
 				"alpine": "3.20",
 			},
@@ -101,8 +101,8 @@ func TestCombinationsCase4(t *testing.T) {
 
 	inputs := loadConfig("test-4.yaml").Images
 
-	expected := map[string]interface{}{
-		"test-case-4": []map[string]interface{}{
+	expected := map[string]any{
+		"test-case-4": []map[string]any{
 			{}, // one image with empty variables
 		},
 	}
@@ -118,8 +118,8 @@ func TestCombinationsCase5(t *testing.T) {
 
 	inputs := loadConfig("test-5.yaml").Images
 
-	expected := map[string]interface{}{
-		"test-case-5": []map[string]interface{}{
+	expected := map[string]any{
+		"test-case-5": []map[string]any{
 			{
 				"alpine": 3,
 			},
@@ -202,7 +202,7 @@ func TestCombinationsCase8(t *testing.T) {
 
 	inputs := loadConfig("test-8.yaml").Images
 
-	excluded := []map[string]interface{}{
+	excluded := []map[string]any{
 		{"alpine": "3.19", "tomcat": "11.0.2", "java": 8},
 		{"alpine": "3.19", "tomcat": "11.0.2", "java": 11},
 		{"alpine": "3.19", "tomcat": "10.1.34", "java": 8},
@@ -215,7 +215,7 @@ func TestCombinationsCase8(t *testing.T) {
 	}
 
 	// collect all sets
-	var combinations [][]map[string]interface{}
+	var combinations [][]map[string]any
 	for _, cfg := range inputs {
 		set := parser.GenerateVariableCombinations(cfg.Variables)
 		combinations = append(combinations, set)

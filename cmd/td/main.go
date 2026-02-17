@@ -128,7 +128,7 @@ func initLogger(verbose bool) {
 	}
 	// Disable timestamps
 	zerolog.TimeFieldFormat = ""
-	consoleWriter.FormatTimestamp = func(i interface{}) string {
+	consoleWriter.FormatTimestamp = func(i any) string {
 		return ""
 	}
 

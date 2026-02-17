@@ -27,7 +27,7 @@ func TestTemplateString(t *testing.T) {
 		"{{ .sprig | default \"works\" }}",
 		"{{range .loop}}{{.}}{{ end }}",
 	}
-	inputArgs := []map[string]interface{}{
+	inputArgs := []map[string]any{
 		{"key": "value"},
 		{"key": 1},
 		{"key": 1.43},
@@ -60,7 +60,7 @@ func TestTemplateList(t *testing.T) {
 		"test-case-1:alpine{{ .alpine | splitList \".\" | first }}",
 		"   test-case-1   \n",
 	}
-	configSet := map[string]interface{}{
+	configSet := map[string]any{
 		"alpine": "3.33",
 		"tag":    "version from param",
 	}
@@ -84,7 +84,7 @@ func TestTemplateMap(t *testing.T) {
 		"\norg.opencontainers.image.nama   ":          "alpine:{{ .alpine }}",
 		"org.opencontainers.image.{{ .alpine }}.nama": "   alpine:{{ .alpine }}  \n",
 	}
-	configSet := map[string]interface{}{
+	configSet := map[string]any{
 		"alpine": "3.33",
 		"tag":    "version from param",
 	}

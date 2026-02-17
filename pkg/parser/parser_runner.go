@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"maps"
+
 	"github.com/tgagor/template-dockerfiles/pkg/config"
 )
 
@@ -19,17 +21,15 @@ func Run(cfg *config.Config, flags *config.Flags) error {
 }
 
 // generates all combinations of variables
-func GenerateVariableCombinations(variables map[string]interface{}) []map[string]interface{} {
-	var combinations []map[string]interface{}
+func GenerateVariableCombinations(variables map[string]any) []map[string]any {
+	var combinations []map[string]any
 
 	// Helper function to recursively generate combinations
-	var generate func(map[string]interface{}, map[string]interface{}, []string)
-	generate = func(current map[string]interface{}, remaining map[string]interface{}, keys []string) {
+	var generate func(map[string]any, map[string]any, []string)
+	generate = func(current map[string]any, remaining map[string]any, keys []string) {
 		if len(keys) == 0 {
-			combo := make(map[string]interface{})
-			for k, v := range current {
-				combo[k] = v
-			}
+			combo := make(map[string]any)
+			maps.Copy(combo, current)
 			combinations = append(combinations, combo)
 			return
 		}
@@ -38,7 +38,7 @@ func GenerateVariableCombinations(variables map[string]interface{}) []map[string
 		value := remaining[key]
 
 		switch v := value.(type) {
-		case []interface{}:
+		case []any:
 			for _, item := range v {
 				current[key] = item
 				generate(current, remaining, keys[1:])
@@ -46,9 +46,9 @@ func GenerateVariableCombinations(variables map[string]interface{}) []map[string
 		case string:
 			current[key] = v
 			generate(current, remaining, keys[1:])
-		case map[string]interface{}:
+		case map[string]any:
 			for subKey, subValue := range v {
-				current[key] = map[string]interface{}{subKey: subValue}
+				current[key] = map[string]any{subKey: subValue}
 				generate(current, remaining, keys[1:])
 			}
 		default:
@@ -57,11 +57,11 @@ func GenerateVariableCombinations(variables map[string]interface{}) []map[string
 		}
 	}
 
-	generate(map[string]interface{}{}, variables, getKeys(variables))
+	generate(map[string]any{}, variables, getKeys(variables))
 	return combinations
 }
 
-func getKeys(m map[string]interface{}) []string {
+func getKeys(m map[string]any) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)
@@ -69,7 +69,7 @@ func getKeys(m map[string]interface{}) []string {
 	return keys
 }
 
-func isExcluded(configSet map[string]interface{}, excludedSets []map[string]interface{}) bool {
+func isExcluded(configSet map[string]any, excludedSets []map[string]any) bool {
 	for _, exclusion := range excludedSets {
 		matchCounter := 0
 		// verify and count matching exclusion variables

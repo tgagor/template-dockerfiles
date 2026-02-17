@@ -11,7 +11,7 @@ import (
 
 // Follow:
 // https://github.com/opencontainers/image-spec/blob/main/annotations.md
-func collectOCILabels(cfg map[string]interface{}) map[string]string {
+func collectOCILabels(cfg map[string]any) map[string]string {
 	labels := map[string]string{}
 
 	if cfg["maintainer"] != "" {
