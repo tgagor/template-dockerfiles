@@ -7,16 +7,7 @@ import (
 )
 
 func Run(cfg *config.Config, flags *config.Flags) error {
-	var engine Engine
-	switch flags.Engine {
-	case "buildx":
-		engine = &BuildxEngine{}
-	default:
-		engine = &DockerEngine{}
-	}
-
 	parser := NewParser(cfg, flags)
-	parser.SetEngine(engine)
 	return parser.Parse()
 }
 
