@@ -87,7 +87,7 @@ func GeneratePlan(cfg *config.Config, flags *config.Flags) (*Plan, error) {
 			if finalTagOwners[tag] == node.ID {
 				keptOriginalTags = append(keptOriginalTags, originalTags[i])
 			} else {
-				log.Info().Str("tag", tag).Str("image", node.ID).Msg("Tag deduplicated (overwritten by later matrix configuration)")
+				log.Debug().Str("tag", tag).Str("image", node.ID).Msg("Tag deduplicated (overwritten by later matrix configuration)")
 			}
 		}
 		node.Image.SetOriginalTags(keptOriginalTags)
