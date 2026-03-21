@@ -41,7 +41,7 @@ func (b *BuildxBuilder) SetFlags(flags *config.Flags) {
 
 func (b *BuildxBuilder) SetThreads(threads int) {
 	b.buildTasks.Threads(threads)
-	// b.tagTasks have to use 1 thread
+	b.taggingTasks.Threads(threads)
 	b.cleanupTasks.Threads(threads)
 }
 

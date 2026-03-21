@@ -315,6 +315,14 @@ func (i *Image) Tags() []string {
 	return tags
 }
 
+func (i *Image) OriginalTags() []string {
+	return i.tags
+}
+
+func (i *Image) SetOriginalTags(tags []string) {
+	i.tags = tags
+}
+
 func (i *Image) Equal(image *Image) bool {
 	return reflect.DeepEqual(i, image)
 }

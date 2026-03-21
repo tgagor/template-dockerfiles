@@ -26,6 +26,8 @@ func GeneratePlan(cfg *config.Config, flags *config.Flags) (*Plan, error) {
 		Roots: make([]string, 0),
 	}
 
+	var chronologicalNodes []*Node
+
 	// 1. Generate all *image.Image instances
 	for _, name := range cfg.ImageOrder {
 		// Build only what's provided by --image flag (single image)
@@ -56,12 +58,38 @@ func GeneratePlan(cfg *config.Config, flags *config.Flags) (*Plan, error) {
 			}
 
 			id := img.UniqName()
-			plan.Nodes[id] = &Node{
+			node := &Node{
 				ID:        id,
 				Image:     img,
 				DependsOn: []string{},
 			}
+			plan.Nodes[id] = node
+			chronologicalNodes = append(chronologicalNodes, node)
 		}
+	}
+
+	// 1.5 Deduplicate alias tags (Last Write Wins) based on chronological order
+	finalTagOwners := make(map[string]string) // tag -> NodeID
+	// Forward pass to record the *last* owner of each tag
+	for _, node := range chronologicalNodes {
+		for _, tag := range node.Image.Tags() {
+			finalTagOwners[tag] = node.ID
+		}
+	}
+
+	// Prune overridden tags
+	for _, node := range chronologicalNodes {
+		var keptOriginalTags []string
+		originalTags := node.Image.OriginalTags()
+		fullyQualifiedTags := node.Image.Tags()
+		for i, tag := range fullyQualifiedTags {
+			if finalTagOwners[tag] == node.ID {
+				keptOriginalTags = append(keptOriginalTags, originalTags[i])
+			} else {
+				log.Info().Str("tag", tag).Str("image", node.ID).Msg("Tag deduplicated (overwritten by later matrix configuration)")
+			}
+		}
+		node.Image.SetOriginalTags(keptOriginalTags)
 	}
 
 	// 2. Identify dependencies between generated images

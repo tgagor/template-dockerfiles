@@ -54,7 +54,7 @@ func (b *DockerBuilder) SetFlags(flags *config.Flags) {
 
 func (b *DockerBuilder) SetThreads(threads int) {
 	b.buildTasks.Threads(threads)
-	// b.tagTasks have to use 1 thread
+	b.taggingTasks.Threads(threads)
 	b.pushTasks.Threads(threads)
 	b.cleanupTasks.Threads(threads)
 
