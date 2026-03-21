@@ -25,9 +25,12 @@ images:
     dockerfile: base/Dockerfile.tpl
     variables:
       alpine:
+        - "3.18"
         - "3.19"
         - "3.20"
         - "3.21"
+        - "3.22"
+        - "3.23"
     tags:
       - base:{{ .tag }}-alpine{{ .alpine }}
       - base:alpine{{ .alpine }}
@@ -42,17 +45,20 @@ images:
     dockerfile: jdk/Dockerfile.tpl
     variables:
       alpine:
+        - "3.18"
         - "3.19"
         - "3.20"
         - "3.21"
+        - "3.22"
+        - "3.23"
       java:
         - 11
         - 17
         - 21
-        - 23
+        - 25
     excludes:
       - alpine: "3.19"
-        java: 23
+        java: 25
       - alpine: "3.20"
         java: 11
     tags:
@@ -72,17 +78,20 @@ images:
       - linux/amd64
     variables:
       alpine:
+        - "3.18"
         - "3.19"
         - "3.20"
         - "3.21"
+        - "3.22"
+        - "3.23"
       java:
         - 11
         - 17
         - 21
-        - 23
+        - 25
     excludes:
       - alpine: "3.19"
-        java: 23
+        java: 25
       - alpine: "3.20"
         java: 11
       - alpine: "3.21"

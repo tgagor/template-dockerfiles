@@ -191,7 +191,7 @@ func (i *Image) ConfigSet() map[string]any {
 func (i *Image) Representation() map[string]any {
 	repr := i.ConfigSet()
 	delete(repr, "env")
-	if i.Flags != nil && !i.Flags.Debug {
+	if i.Flags != nil && !i.Flags.Verbose && !i.Flags.Debug {
 		delete(repr, "labels")
 		delete(repr, "maintainer")
 	}

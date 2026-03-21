@@ -55,6 +55,11 @@ func NewModel(total int) Model {
 	}
 }
 
+// Err returns the captured build error, if any.
+func (m Model) Err() error {
+	return m.err
+}
+
 func (m Model) Init() tea.Cmd {
 	return m.spinner.Tick
 }
@@ -74,7 +79,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case EventMsg:
 		if msg.Err != nil {
 			m.err = msg.Err
-			return m, tea.Quit
+			// Print the error persistently above the TUI before quitting,
+			// so it remains visible after the TUI tears down.
+			errLine := errorStyle.Render(fmt.Sprintf("\n❌ Build failed: %v\n", msg.Err))
+			return m, tea.Sequence(tea.Println(errLine), tea.Quit)
 		}
 
 		if msg.IsDone {
@@ -118,7 +126,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) View() string {
 	if m.err != nil {
-		return errorStyle.Render(fmt.Sprintf("\n❌ Build failed: %v", m.err)) + "\n"
+		// Error already printed via tea.Println; show nothing in the live view.
+		return ""
 	}
 
 	if m.CompletedImages >= m.TotalImages && m.TotalImages > 0 {

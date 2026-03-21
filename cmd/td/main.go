@@ -104,6 +104,9 @@ When 'docker build' is just not enough. :-)`,
 		}
 
 		if !flags.Verbose && !flags.Debug {
+			// TUI mode: suppress logs so they don't corrupt the UI
+			log.Logger = zerolog.Nop()
+
 			events := make(chan tui.EventMsg, 100)
 			p := tea.NewProgram(tui.NewModel(len(plan.Nodes)))
 
@@ -119,8 +122,13 @@ When 'docker build' is just not enough. :-)`,
 				}
 			}()
 
-			if _, err := p.Run(); err != nil {
+			finalModel, err := p.Run()
+			if err != nil {
 				util.FailOnError(err, "TUI error")
+			}
+			// Surface any build error captured inside the model (non-zero exit)
+			if m, ok := finalModel.(tui.Model); ok {
+				util.FailOnError(m.Err())
 			}
 		} else {
 			if err := builder.ExecutePlan(plan, engine, &flags, nil); err != nil {
@@ -205,9 +213,8 @@ func initLogger(verbose, debug bool) {
 			}
 		})).Level(zerolog.DebugLevel)
 	case verbose:
-		log.Logger = baseLogger.Level(zerolog.InfoLevel)
+		log.Logger = baseLogger.Level(zerolog.DebugLevel)
 	default:
-		// TUI mode: suppress logs so they don't corrupt the UI
-		log.Logger = zerolog.Nop()
+		log.Logger = baseLogger.Level(zerolog.InfoLevel)
 	}
 }
