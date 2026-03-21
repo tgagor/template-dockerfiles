@@ -59,7 +59,7 @@ func (b *BuildxBuilder) Process(ctx context.Context, img *image.Image, events ch
 	}
 
 	if b.flags.Build || b.flags.Push {
-		report("Tagging aliases...")
+		report("Tagging " + img.UniqName() + "...")
 		tagger := cmd.New("docker").Arg("buildx").Arg("build")
 		if len(img.Platforms) > 0 {
 			tagger.Arg(platformsToArgs(img.Platforms)...)

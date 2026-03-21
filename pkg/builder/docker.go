@@ -61,8 +61,8 @@ func (b *DockerBuilder) Process(ctx context.Context, img *image.Image, events ch
 	}
 
 	if b.flags.Build {
-		report("Tagging aliases...")
 		for _, tag := range img.Tags() {
+			report("Tagging " + img.UniqName() + " -> " + tag + "...")
 			tagger := cmd.New("docker").Arg("tag").
 				Arg(img.UniqName()).
 				Arg(tag).
