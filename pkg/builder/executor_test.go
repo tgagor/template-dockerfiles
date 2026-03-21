@@ -12,6 +12,7 @@ import (
 	"github.com/tgagor/template-dockerfiles/pkg/config"
 	"github.com/tgagor/template-dockerfiles/pkg/image"
 	"github.com/tgagor/template-dockerfiles/pkg/parser"
+	"github.com/tgagor/template-dockerfiles/pkg/tui"
 )
 
 type mockBuilder struct {
@@ -33,7 +34,7 @@ func newMockBuilder() *mockBuilder {
 func (m *mockBuilder) Init() error                  { return nil }
 func (m *mockBuilder) SetFlags(flags *config.Flags) {}
 func (m *mockBuilder) Terminate() error             { return nil }
-func (m *mockBuilder) Process(ctx context.Context, img *image.Image) error {
+func (m *mockBuilder) Process(ctx context.Context, img *image.Image, events chan<- tui.EventMsg) error {
 	m.mu.Lock()
 	m.startTimes[img.Name] = time.Now()
 	m.processCalls = append(m.processCalls, img.Name)
@@ -78,7 +79,7 @@ func TestExecutePlan_DAGConcurrency(t *testing.T) {
 
 	flags := &config.Flags{Threads: 4}
 
-	err := builder.ExecutePlan(plan, mock, flags)
+	err := builder.ExecutePlan(plan, mock, flags, nil)
 	require.NoError(t, err)
 
 	mock.mu.Lock()

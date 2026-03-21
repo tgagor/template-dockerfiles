@@ -5,6 +5,7 @@ import (
 	"os"
 	"runtime"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mattn/go-colorable"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -13,6 +14,7 @@ import (
 	"github.com/tgagor/template-dockerfiles/pkg/builder"
 	"github.com/tgagor/template-dockerfiles/pkg/config"
 	"github.com/tgagor/template-dockerfiles/pkg/parser"
+	"github.com/tgagor/template-dockerfiles/pkg/tui"
 	"github.com/tgagor/template-dockerfiles/pkg/util"
 )
 
@@ -38,7 +40,7 @@ When 'docker build' is just not enough. :-)`,
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		initLogger(flags.Verbose)
+		initLogger(flags.Verbose, flags.Debug)
 
 		// If version flag is provided, show the version and exit.
 		if flags.PrintVersion {
@@ -48,7 +50,9 @@ When 'docker build' is just not enough. :-)`,
 		}
 
 		// Main logic goes here
-		if flags.Verbose {
+		if flags.Debug {
+			log.Debug().Msg("Debug mode enabled.")
+		} else if flags.Verbose {
 			log.Debug().Msg("Verbose mode enabled.")
 		}
 		if flags.Push && !flags.Build {
@@ -99,8 +103,29 @@ When 'docker build' is just not enough. :-)`,
 			engine = &builder.DockerBuilder{}
 		}
 
-		if err := builder.ExecutePlan(plan, engine, &flags); err != nil {
-			util.FailOnError(err, "Error during execution")
+		if !flags.Verbose && !flags.Debug {
+			events := make(chan tui.EventMsg, 100)
+			p := tea.NewProgram(tui.NewModel(len(plan.Nodes)))
+
+			go func() {
+				for msg := range events {
+					p.Send(msg)
+				}
+			}()
+
+			go func() {
+				if err := builder.ExecutePlan(plan, engine, &flags, events); err != nil {
+					p.Send(tui.EventMsg{Err: err})
+				}
+			}()
+
+			if _, err := p.Run(); err != nil {
+				util.FailOnError(err, "TUI error")
+			}
+		} else {
+			if err := builder.ExecutePlan(plan, engine, &flags, nil); err != nil {
+				util.FailOnError(err, "Error during execution")
+			}
 		}
 	},
 }
@@ -123,7 +148,8 @@ func init() {
 	cmd.Flags().IntVar(&flags.Threads, "parallel", runtime.NumCPU(), "Specify the number of threads to use, defaults to number of CPUs")
 	cmd.Flags().StringVarP(&flags.Tag, "tag", "t", "", "Tag to use as the image version")
 	cmd.Flags().BoolVar(&flags.NoColor, "no-color", false, "Disable color output")
-	cmd.Flags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Increase verbosity of output")
+	cmd.Flags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Plain text info-level output without TUI (for scripts/CI)")
+	cmd.Flags().BoolVar(&flags.Debug, "debug", false, "Debug-level logging including raw Docker command output")
 	cmd.Flags().BoolVarP(&flags.PrintVersion, "version", "V", false, "Display the application version and exit")
 }
 
@@ -133,7 +159,7 @@ func main() {
 	}
 }
 
-func initLogger(verbose bool) {
+func initLogger(verbose, debug bool) {
 	// Console writer
 	consoleWriter := zerolog.ConsoleWriter{
 		Out:     colorable.NewColorableStdout(),
@@ -171,14 +197,17 @@ func initLogger(verbose bool) {
 	// Base logger
 	baseLogger := zerolog.New(consoleWriter).With().Logger()
 
-	// Add caller only for debug level using a hook
-	if verbose {
+	switch {
+	case debug:
 		log.Logger = baseLogger.Hook(zerolog.HookFunc(func(e *zerolog.Event, level zerolog.Level, msg string) {
 			if level == zerolog.DebugLevel {
 				e.Caller()
 			}
 		})).Level(zerolog.DebugLevel)
-	} else {
+	case verbose:
 		log.Logger = baseLogger.Level(zerolog.InfoLevel)
+	default:
+		// TUI mode: suppress logs so they don't corrupt the UI
+		log.Logger = zerolog.Nop()
 	}
 }

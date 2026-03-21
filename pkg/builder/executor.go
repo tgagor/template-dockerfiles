@@ -7,11 +7,12 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tgagor/template-dockerfiles/pkg/config"
 	"github.com/tgagor/template-dockerfiles/pkg/parser"
+	"github.com/tgagor/template-dockerfiles/pkg/tui"
 )
 
 // ExecutePlan orchestrates the build process across all nodes of the dependency graph,
 // processing ready images non-blocking through a worker pool.
-func ExecutePlan(plan *parser.Plan, b Builder, flags *config.Flags) error {
+func ExecutePlan(plan *parser.Plan, b Builder, flags *config.Flags, events chan<- tui.EventMsg) error {
 	if err := b.Init(); err != nil {
 		return err
 	}
@@ -77,11 +78,18 @@ func ExecutePlan(plan *parser.Plan, b Builder, flags *config.Flags) error {
 					node := plan.Nodes[id]
 					log.Info().Str("image", node.Image.Name).Msg("Processing")
 
-					if err := b.Process(ctx, node.Image); err != nil {
+					if err := b.Process(ctx, node.Image, events); err != nil {
 						log.Error().Err(err).Str("image", node.Image.Name).Msg("Processing failed")
+						if events != nil {
+							events <- tui.EventMsg{Err: err}
+						}
 						errCh <- err
 						cancel() // cancel context for other workers
 						return
+					}
+
+					if events != nil {
+						events <- tui.EventMsg{ImageName: node.Image.Name, IsDone: true}
 					}
 
 					mu.Lock()
@@ -97,6 +105,9 @@ func ExecutePlan(plan *parser.Plan, b Builder, flags *config.Flags) error {
 
 					if done {
 						close(readyCh)
+						if events != nil {
+							close(events)
+						}
 					}
 				}
 			}

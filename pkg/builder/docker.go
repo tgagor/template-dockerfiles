@@ -10,6 +10,7 @@ import (
 	"github.com/tgagor/template-dockerfiles/pkg/cmd"
 	"github.com/tgagor/template-dockerfiles/pkg/config"
 	"github.com/tgagor/template-dockerfiles/pkg/image"
+	"github.com/tgagor/template-dockerfiles/pkg/tui"
 	"github.com/tgagor/template-dockerfiles/pkg/util"
 )
 
@@ -26,8 +27,15 @@ func (b *DockerBuilder) SetFlags(flags *config.Flags) {
 	b.flags = flags
 }
 
-func (b *DockerBuilder) Process(ctx context.Context, img *image.Image) error {
+func (b *DockerBuilder) Process(ctx context.Context, img *image.Image, events chan<- tui.EventMsg) error {
+	report := func(status string) {
+		if events != nil {
+			events <- tui.EventMsg{ImageName: img.Name, Status: status}
+		}
+	}
+
 	if b.flags.Build {
+		report(fmt.Sprintf("Building %s...", img.UniqName()))
 		builder := cmd.New("docker").Arg("build").
 			Arg(img.Options...).
 			Arg("-f", img.Dockerfile).
@@ -37,7 +45,7 @@ func (b *DockerBuilder) Process(ctx context.Context, img *image.Image) error {
 			Arg(img.BuildContextDir).
 			PreInfo("Building " + img.UniqName()).
 			PostInfo("Built " + img.UniqName()).
-			SetVerbose(b.flags.Verbose)
+			SetVerbose(b.flags.Debug)
 		if _, err := builder.Run(ctx); err != nil {
 			return err
 		}
@@ -46,18 +54,20 @@ func (b *DockerBuilder) Process(ctx context.Context, img *image.Image) error {
 	}
 
 	if b.flags.Build && b.flags.Squash {
+		report("Squashing image...")
 		if err := b.Squash(ctx, img); err != nil {
 			return err
 		}
 	}
 
 	if b.flags.Build {
+		report("Tagging aliases...")
 		for _, tag := range img.Tags() {
 			tagger := cmd.New("docker").Arg("tag").
 				Arg(img.UniqName()).
 				Arg(tag).
 				PreInfo("Tagging " + tag).
-				SetVerbose(b.flags.Verbose)
+				SetVerbose(b.flags.Debug)
 			if _, err := tagger.Run(ctx); err != nil {
 				return err
 			}
@@ -65,11 +75,12 @@ func (b *DockerBuilder) Process(ctx context.Context, img *image.Image) error {
 	}
 
 	if b.flags.Push {
+		report("Pushing to registry...")
 		for _, tag := range img.Tags() {
 			pusher := cmd.New("docker").Arg("push").
 				Arg(tag).
 				PreInfo("Pushing " + tag)
-			if !b.flags.Verbose {
+			if !b.flags.Debug {
 				pusher.Arg("--quiet")
 			}
 			if _, err := pusher.Run(ctx); err != nil {
@@ -92,7 +103,7 @@ func (b *DockerBuilder) Squash(ctx context.Context, img *image.Image) error {
 		Arg("--name", containerName).
 		Arg(img.UniqName()).
 		Arg("true").
-		SetVerbose(b.flags.Verbose)
+		SetVerbose(b.flags.Debug)
 	if _, err := runItFirst.Run(ctx); err != nil {
 		return err
 	}
@@ -109,7 +120,7 @@ func (b *DockerBuilder) Squash(ctx context.Context, img *image.Image) error {
 		Arg(containerName).
 		Arg("-o", tmpTarFile).
 		PreInfo(fmt.Sprintf("Squashing %s", img.UniqName())).
-		SetVerbose(b.flags.Verbose)
+		SetVerbose(b.flags.Debug)
 	if _, err := exportIt.Run(ctx); err != nil {
 		return err
 	}
@@ -158,7 +169,7 @@ func (b *DockerBuilder) Squash(ctx context.Context, img *image.Image) error {
 			importIt.Arg("--change", "WORKDIR "+item.Config.WorkingDir)
 		}
 	}
-	importIt.Arg(tmpTarFile).Arg(img.UniqName()).SetVerbose(b.flags.Verbose)
+	importIt.Arg(tmpTarFile).Arg(img.UniqName()).SetVerbose(b.flags.Debug)
 	if _, err := importIt.Run(ctx); err != nil {
 		return err
 	}
@@ -181,7 +192,7 @@ func (b *DockerBuilder) Squash(ctx context.Context, img *image.Image) error {
 func (b *DockerBuilder) Remove(ctx context.Context, imageName string) {
 	remover := cmd.New("docker").Arg("image", "rm", "-f").
 		Arg(imageName).
-		SetVerbose(b.flags.Verbose)
+		SetVerbose(b.flags.Debug)
 	// fire and forget for cleanup
 	_, _ = remover.Run(ctx)
 }

@@ -2,12 +2,14 @@ package builder
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/rs/zerolog/log"
 	"github.com/tgagor/template-dockerfiles/pkg/cmd"
 	"github.com/tgagor/template-dockerfiles/pkg/config"
 	"github.com/tgagor/template-dockerfiles/pkg/image"
+	"github.com/tgagor/template-dockerfiles/pkg/tui"
 )
 
 type BuildxBuilder struct {
@@ -23,8 +25,15 @@ func (b *BuildxBuilder) SetFlags(flags *config.Flags) {
 	b.flags = flags
 }
 
-func (b *BuildxBuilder) Process(ctx context.Context, img *image.Image) error {
+func (b *BuildxBuilder) Process(ctx context.Context, img *image.Image, events chan<- tui.EventMsg) error {
+	report := func(status string) {
+		if events != nil {
+			events <- tui.EventMsg{ImageName: img.Name, Status: status}
+		}
+	}
+
 	if b.flags.Build {
+		report(fmt.Sprintf("Building %s...", img.UniqName()))
 		builder := cmd.New("docker").Arg("buildx").Arg("build")
 		if len(img.Platforms) > 0 {
 			builder.Arg(platformsToArgs(img.Platforms)...)
@@ -38,7 +47,7 @@ func (b *BuildxBuilder) Process(ctx context.Context, img *image.Image) error {
 			Arg(img.BuildContextDir).
 			PreInfo("Building " + img.UniqName()).
 			PostInfo("Built " + img.UniqName()).
-			SetVerbose(b.flags.Verbose)
+			SetVerbose(b.flags.Debug)
 		if _, err := builder.Run(ctx); err != nil {
 			return err
 		}
@@ -50,6 +59,7 @@ func (b *BuildxBuilder) Process(ctx context.Context, img *image.Image) error {
 	}
 
 	if b.flags.Build || b.flags.Push {
+		report("Tagging aliases...")
 		tagger := cmd.New("docker").Arg("buildx").Arg("build")
 		if len(img.Platforms) > 0 {
 			tagger.Arg(platformsToArgs(img.Platforms)...)
@@ -65,11 +75,12 @@ func (b *BuildxBuilder) Process(ctx context.Context, img *image.Image) error {
 		}
 
 		if b.flags.Push {
+			report("Pushing to registry...")
 			tagger.Arg("--push")
 			tagger.PreInfo("Tagging and pushing " + img.UniqName() + " with tags: " + strings.Join(img.Tags(), ", "))
 		}
 
-		tagger.Arg(img.BuildContextDir).SetVerbose(b.flags.Verbose)
+		tagger.Arg(img.BuildContextDir).SetVerbose(b.flags.Debug)
 
 		if !b.flags.Push {
 			tagger.PreInfo("Tagging " + img.UniqName() + " with tags: " + strings.Join(img.Tags(), ", "))
@@ -90,7 +101,7 @@ func (b *BuildxBuilder) Process(ctx context.Context, img *image.Image) error {
 func (b *BuildxBuilder) Remove(ctx context.Context, imageName string) {
 	remover := cmd.New("docker").Arg("image", "rm", "-f").
 		Arg(imageName).
-		SetVerbose(b.flags.Verbose)
+		SetVerbose(b.flags.Debug)
 	_, _ = remover.Run(ctx)
 }
 
