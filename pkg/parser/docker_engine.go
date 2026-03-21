@@ -7,27 +7,24 @@ import (
 
 	"github.com/tgagor/template-dockerfiles/pkg/builder"
 	"github.com/tgagor/template-dockerfiles/pkg/config"
-	"github.com/tgagor/template-dockerfiles/pkg/image"
 	"github.com/tgagor/template-dockerfiles/pkg/runner"
 )
 
 type DockerEngine struct {
 }
 
-func (p *DockerEngine) Parse(cfg *config.Config, flags *config.Flags) error {
+func (p *DockerEngine) ExecutePlan(plan *Plan, flags *config.Flags) error {
 	// collect all push tasks and push at the end
 	pusher := runner.New()
 	pusher.Threads(flags.Threads)
 
-	for _, name := range cfg.ImageOrder {
-		// Build only what's provided by --image flag (single image)
-		if flags.Image != "" && name != flags.Image {
+	layers := plan.Layers()
+	for i, layer := range layers {
+		if len(layer) == 0 {
 			continue
 		}
 
-		imageCfg := cfg.Images[name]
-		log.Debug().Str("image", name).Interface("config", imageCfg).Msg("Parsing")
-		log.Debug().Interface("excludes", imageCfg.Excludes).Msg("Excluded config sets")
+		log.Info().Int("layer", i).Int("nodes", len(layer)).Msg("Executing build layer")
 
 		buildEngine := &builder.DockerBuilder{}
 		if err := buildEngine.Init(); err != nil {
@@ -36,21 +33,8 @@ func (p *DockerEngine) Parse(cfg *config.Config, flags *config.Flags) error {
 		}
 		buildEngine.SetFlags(flags)
 
-		combinations := GenerateVariableCombinations(imageCfg.Variables)
-		for _, rawConfigSet := range combinations {
-			img := image.From(name, cfg, rawConfigSet, flags)
-
-			// skip excluded config sets
-			if isExcluded(img.ConfigSet(), imageCfg.Excludes) {
-				log.Warn().Interface("config set", img.Representation()).Interface("excludes", imageCfg.Excludes).Msg("Skipping excluded")
-				continue
-			}
-
-			if err := img.Validate(); err != nil {
-				return err
-			}
-
-			// schedule for building
+		for _, node := range layer {
+			img := node.Image
 			log.Info().Str("image", img.Name).Interface("config set", img.Representation()).Msg("Processing")
 			buildEngine.Queue(img)
 		}
@@ -62,9 +46,6 @@ func (p *DockerEngine) Parse(cfg *config.Config, flags *config.Flags) error {
 				return err
 			}
 		}
-		//  else {
-		// 	log.Warn().Msg("Skipping building images. Use --build flag to build images.")
-		// }
 
 		// let squash it
 		if flags.Build && flags.Squash {

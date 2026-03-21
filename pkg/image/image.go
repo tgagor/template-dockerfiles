@@ -1,8 +1,10 @@
 package image
 
 import (
+	"bufio"
 	"fmt"
 	"maps"
+	"os"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -376,4 +378,67 @@ func (i *Image) generateDockerfilePath() string {
 	dirname := filepath.Dir(i.DockerfileTemplate)
 	filename := strings.Trim(fmt.Sprintf("%s-%s.Dockerfile", i.Name, generateCombinationString(i.ConfigSet())), "-")
 	return filepath.Join(dirname, util.SanitizeForFileName(filename))
+}
+
+func (i *Image) ExtractFromDependencies() ([]string, error) {
+	if i.Dockerfile == "" {
+		return nil, fmt.Errorf("dockerfile path is not set")
+	}
+
+	file, err := os.Open(i.Dockerfile)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			log.Error().Err(closeErr).Msg("Error closing file")
+		}
+	}()
+
+	var dependencies []string
+	args := make(map[string]string)
+
+	// Pre-fill with BuildArgs since they can override Dockerfile ARGs
+	for k, v := range i.BuildArgs {
+		args[k] = v
+	}
+
+	scanner := bufio.NewScanner(file)
+	fromRegex := regexp.MustCompile(`(?i)^\s*FROM\s+(?:--platform=[^\s]+\s+)?([^\s]+)`)
+	argRegex := regexp.MustCompile(`(?i)^\s*ARG\s+([^=\s]+)(?:=(.*))?`)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if matches := argRegex.FindStringSubmatch(line); len(matches) > 1 {
+			name := matches[1]
+			// Only set if not already provided via BuildArgs
+			if _, exists := args[name]; !exists {
+				val := ""
+				if len(matches) > 2 {
+					val = matches[2]
+				}
+				args[name] = val
+			}
+			continue
+		}
+
+		if matches := fromRegex.FindStringSubmatch(line); len(matches) > 1 {
+			imageName := matches[1]
+
+			// Substitute ARGs
+			for k, v := range args {
+				imageName = strings.ReplaceAll(imageName, "${"+k+"}", v)
+				imageName = strings.ReplaceAll(imageName, "$"+k, v)
+			}
+
+			dependencies = append(dependencies, imageName)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return dependencies, nil
 }

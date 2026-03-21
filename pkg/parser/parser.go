@@ -40,5 +40,9 @@ func (p *Parser) SetFlags(flags *config.Flags) {
 }
 
 func (p *Parser) Parse() error {
-	return p.engine.Parse(p.cfg, p.flags)
+	plan, err := GeneratePlan(p.cfg, p.flags)
+	if err != nil {
+		return err
+	}
+	return p.engine.ExecutePlan(plan, p.flags)
 }
