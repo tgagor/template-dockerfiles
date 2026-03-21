@@ -92,14 +92,14 @@ When 'docker build' is just not enough. :-)`,
 			util.FailOnError(err, "Error during parsing/planning")
 		}
 
-		var engine builder.Engine
+		var engine builder.Builder
 		if flags.Engine == "buildx" {
 			engine = &builder.BuildxBuilder{}
 		} else {
 			engine = &builder.DockerBuilder{}
 		}
 
-		if err := engine.ExecutePlan(plan, &flags); err != nil {
+		if err := builder.ExecutePlan(plan, engine, &flags); err != nil {
 			util.FailOnError(err, "Error during execution")
 		}
 	},
