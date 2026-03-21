@@ -74,7 +74,9 @@ func (b *BuildxBuilder) Build(img *image.Image) {
 	b.Remove(img.UniqName()) // this image is temporary, remove it after build
 }
 
-func (b *BuildxBuilder) Squash(img *image.Image) {}
+func (b *BuildxBuilder) Squash(img *image.Image) error {
+	return nil
+}
 
 func (b *BuildxBuilder) TagAndPush(img *image.Image) {
 	tagger := cmd.New("docker").Arg("buildx").Arg("build")

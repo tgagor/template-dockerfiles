@@ -97,7 +97,7 @@ func (b *DockerBuilder) Build(img *image.Image) {
 }
 
 // FIXME: images before squashing became unreferenced after squashing, so we should remove them
-func (b *DockerBuilder) Squash(img *image.Image) {
+func (b *DockerBuilder) Squash(img *image.Image) error {
 	containerName := "run-" + util.SanitizeForFileName(img.UniqName())
 
 	runItFirst := cmd.New("docker").Arg("run").
@@ -108,7 +108,9 @@ func (b *DockerBuilder) Squash(img *image.Image) {
 	b.squashRunImages.AddTask(runItFirst)
 
 	imgMetadata, err := InspectImage(img.UniqName())
-	util.FailOnError(err, "Couldn't inspect Docker image.")
+	if err != nil {
+		return fmt.Errorf("couldn't inspect Docker image %s: %w", img.UniqName(), err)
+	}
 	log.Trace().Interface("data", imgMetadata).Msg("Docker inspect result")
 	b.imageSizesBefore[img.UniqName()] = imgMetadata[0].Size
 
@@ -166,6 +168,7 @@ func (b *DockerBuilder) Squash(img *image.Image) {
 	// remove interim images
 	oldImgHash := strings.TrimPrefix(imgMetadata[0].Id, "sha256:")[:12]
 	b.Remove(oldImgHash)
+	return nil
 }
 
 func (b *DockerBuilder) Tag(img *image.Image) {
@@ -206,7 +209,9 @@ func (b *DockerBuilder) RunSquashing() error {
 	// squashing requires images to be already build (because of inspect),
 	// only then we can squash
 	for _, img := range b.images {
-		b.Squash(img)
+		if err := b.Squash(img); err != nil {
+			return err
+		}
 	}
 	defer util.RemoveFile(b.squashTempoaryTarFiles...)
 
