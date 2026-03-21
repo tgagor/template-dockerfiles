@@ -56,6 +56,7 @@ func GeneratePlan(cfg *config.Config, flags *config.Flags) (*Plan, error) {
 			if err := img.Render(); err != nil {
 				return nil, err
 			}
+			log.Debug().Interface("config set", img.Representation()).Msg("Generated")
 
 			id := img.UniqName()
 			node := &Node{
