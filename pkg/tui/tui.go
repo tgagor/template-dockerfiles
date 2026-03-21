@@ -127,7 +127,7 @@ func (m Model) View() string {
 
 	var b strings.Builder
 
-	header := fmt.Sprintf("🐳 Executing Plan: %d / %d Images Completed", m.CompletedImages, m.TotalImages)
+	header := fmt.Sprintf("🐳 Executing plan: %d / %d images completed", m.CompletedImages, m.TotalImages)
 	b.WriteString(headerStyle.Render(header) + "\n")
 
 	// Progress bar
