@@ -115,17 +115,26 @@ func (i *Image) Validate() error {
 		}
 	}
 
+	// validate tags
+	if len(i.tags) < 1 {
+		// log.Error().Str("image", imageName).Msg("No 'tags' defined for")
+		return fmt.Errorf("no 'tags' defined for %s - add 'tags' block to continue", i.Name)
+	}
+
+	// validate Dockerfile path
+	if i.Dockerfile == "" {
+		return fmt.Errorf("required Dockerfile is missing for image %s", i.Name)
+	}
+
+	return nil
+}
+
+func (i *Image) Render() error {
 	// template templatedTags
 	if templatedTags, err := TemplateList(i.tags, i.ConfigSet()); err != nil {
 		return err
 	} else {
 		i.tags = templatedTags
-	}
-
-	// validate tags
-	if len(i.tags) < 1 {
-		// log.Error().Str("image", imageName).Msg("No 'tags' defined for")
-		return fmt.Errorf("no 'tags' defined for %s - add 'tags' block to continue", i.Name)
 	}
 
 	// template labels
@@ -150,9 +159,6 @@ func (i *Image) Validate() error {
 	}
 
 	// template Dockerfile
-	if i.Dockerfile == "" {
-		return fmt.Errorf("required Dockerfile is missing for image %s", i.Name)
-	}
 	if strings.HasSuffix(i.DockerfileTemplate, ".tpl") {
 		log.Debug().Str("dockerfile", i.Dockerfile).Msg("Generating temporary")
 		if err := TemplateFile(i.DockerfileTemplate, i.Dockerfile, i.ConfigSet()); err != nil {

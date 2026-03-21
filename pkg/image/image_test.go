@@ -108,6 +108,7 @@ func TestConfigSetGenerationCase5(t *testing.T) {
 		for _, set := range combinations {
 			img := image.From(imageName, cfg, set, &config.Flags{BuildFile: "../../tests/test-5.yaml"})
 			assert.Nil(t, img.Validate())
+			assert.Nil(t, img.Render())
 			img.RemoveTemporaryDockerfile()
 			configSet := img.ConfigSet()
 			require.NotEmpty(t, configSet)
@@ -206,6 +207,7 @@ func TestConfigSetGenerationCase9(t *testing.T) {
 		for _, set := range combinations {
 			img := image.From(imageName, cfg, set, &config.Flags{BuildFile: "../../tests/test-9.yaml"})
 			assert.Nil(t, img.Validate())
+			assert.Nil(t, img.Render())
 			img.RemoveTemporaryDockerfile()
 			configSet := img.ConfigSet()
 			require.NotEmpty(t, configSet)
