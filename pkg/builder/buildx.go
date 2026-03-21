@@ -28,7 +28,7 @@ func (b *BuildxBuilder) SetFlags(flags *config.Flags) {
 func (b *BuildxBuilder) Process(ctx context.Context, img *image.Image, events chan<- tui.EventMsg) error {
 	report := func(status string) {
 		if events != nil {
-			events <- tui.EventMsg{ImageName: img.Name, Status: status}
+			events <- tui.EventMsg{ImageName: img.Name, ImageUniqName: img.UniqName(), Status: status}
 		}
 	}
 

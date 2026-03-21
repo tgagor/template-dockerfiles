@@ -13,18 +13,20 @@ import (
 )
 
 type EventMsg struct {
-	ImageName string
-	Status    string
-	IsDone    bool
-	Err       error
+	ImageName     string // human-friendly image family name (e.g. "jdk")
+	ImageUniqName string // unique variant key  (e.g. "jdk-alpine-3.21-java-21")
+	Status        string
+	IsDone        bool
+	Err           error
 }
 
 type Model struct {
 	TotalImages     int
 	CompletedImages int
+	width           int
 
-	activeTasks map[string]string // ImageName -> Status
-	orderedKeys []string          // to keep rendering deterministic
+	activeTasks map[string]string // ImageUniqName -> display string
+	orderedKeys []string          // stable render order
 
 	spinner  spinner.Model
 	progress progress.Model
@@ -64,6 +66,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.progress.Width = msg.Width - 4
+		return m, nil
+
 	case EventMsg:
 		if msg.Err != nil {
 			m.err = msg.Err
@@ -72,10 +79,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if msg.IsDone {
 			m.CompletedImages++
-			delete(m.activeTasks, msg.ImageName)
-			// Remove from ordered keys
+			delete(m.activeTasks, msg.ImageUniqName)
 			for i, v := range m.orderedKeys {
-				if v == msg.ImageName {
+				if v == msg.ImageUniqName {
 					m.orderedKeys = append(m.orderedKeys[:i], m.orderedKeys[i+1:]...)
 					break
 				}
@@ -93,11 +99,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		// Update or add task
-		if _, exists := m.activeTasks[msg.ImageName]; !exists {
-			m.orderedKeys = append(m.orderedKeys, msg.ImageName)
+		// Update or add task; key by unique name so variants don't overwrite each other
+		display := fmt.Sprintf("[%s] %s", taskStyle.Render(msg.ImageName), msg.Status)
+		if _, exists := m.activeTasks[msg.ImageUniqName]; !exists {
+			m.orderedKeys = append(m.orderedKeys, msg.ImageUniqName)
 		}
-		m.activeTasks[msg.ImageName] = msg.Status
+		m.activeTasks[msg.ImageUniqName] = display
 		return m, nil
 
 	case spinner.TickMsg:
@@ -120,7 +127,7 @@ func (m Model) View() string {
 
 	var b strings.Builder
 
-	header := fmt.Sprintf("🚀 Executing Plan: %d / %d Images Completed", m.CompletedImages, m.TotalImages)
+	header := fmt.Sprintf("🐳 Executing Plan: %d / %d Images Completed", m.CompletedImages, m.TotalImages)
 	b.WriteString(headerStyle.Render(header) + "\n")
 
 	// Progress bar
@@ -133,11 +140,9 @@ func (m Model) View() string {
 	// Active Tasks
 	if len(m.orderedKeys) > 0 {
 		b.WriteString("Active Tasks:\n")
-		// Sort keys to prevent jumping
 		sort.Strings(m.orderedKeys)
-		for _, imgName := range m.orderedKeys {
-			status := m.activeTasks[imgName]
-			line := fmt.Sprintf(" %s [%s] %s", m.spinner.View(), taskStyle.Render(imgName), status)
+		for _, key := range m.orderedKeys {
+			line := fmt.Sprintf(" %s %s", m.spinner.View(), m.activeTasks[key])
 			b.WriteString(line + "\n")
 		}
 	} else {

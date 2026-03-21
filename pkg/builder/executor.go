@@ -89,7 +89,7 @@ func ExecutePlan(plan *parser.Plan, b Builder, flags *config.Flags, events chan<
 					}
 
 					if events != nil {
-						events <- tui.EventMsg{ImageName: node.Image.Name, IsDone: true}
+						events <- tui.EventMsg{ImageName: node.Image.Name, ImageUniqName: id, IsDone: true}
 					}
 
 					mu.Lock()
