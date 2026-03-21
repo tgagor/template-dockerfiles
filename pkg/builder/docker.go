@@ -9,6 +9,7 @@ import (
 	"github.com/tgagor/template-dockerfiles/pkg/cmd"
 	"github.com/tgagor/template-dockerfiles/pkg/config"
 	"github.com/tgagor/template-dockerfiles/pkg/image"
+	"github.com/tgagor/template-dockerfiles/pkg/parser"
 	"github.com/tgagor/template-dockerfiles/pkg/runner"
 	"github.com/tgagor/template-dockerfiles/pkg/util"
 )
@@ -253,6 +254,78 @@ func (b *DockerBuilder) Terminate() error {
 	if b.flags.Delete {
 		for _, img := range b.images {
 			defer img.RemoveTemporaryDockerfile()
+		}
+	}
+
+	return nil
+}
+
+func (b *DockerBuilder) ExecutePlan(plan *parser.Plan, flags *config.Flags) error {
+	// collect all push tasks and push at the end (cross layer)
+	pusher := runner.New()
+	pusher.Threads(flags.Threads)
+
+	layers := plan.Layers()
+	for i, layer := range layers {
+		if len(layer) == 0 {
+			continue
+		}
+
+		log.Info().Int("layer", i).Int("nodes", len(layer)).Msg("Executing build layer")
+
+		if err := b.Init(); err != nil {
+			log.Error().Err(err).Msg("Failed to initialize builder.")
+			return err
+		}
+		b.SetFlags(flags)
+
+		for _, node := range layer {
+			img := node.Image
+			log.Info().Str("image", img.Name).Interface("config set", img.Representation()).Msg("Processing")
+			b.Queue(img)
+		}
+
+		// execute the build queue
+		if b.flags.Build {
+			if err := b.RunBuilding(); err != nil {
+				log.Error().Err(err).Msg("Building failed with error, check error above. Exiting.")
+				return err
+			}
+		}
+
+		// let squash it
+		if b.flags.Build && b.flags.Squash {
+			if err := b.RunSquashing(); err != nil {
+				log.Error().Err(err).Msg("Squashing failed with error, check error above. Exiting.")
+				return err
+			}
+		}
+
+		// continue typical build
+		if b.flags.Build {
+			if err := b.RunTagging(); err != nil {
+				log.Error().Err(err).Msg("Tagging failed with error, check error above. Exiting.")
+				return err
+			}
+		}
+		if b.flags.Push {
+			pusher.AddUniq(b.CollectPushTasks()...)
+		}
+
+		// Shutdown the builder
+		if err := b.Terminate(); err != nil {
+			log.Error().Err(err).Msg("Failed to shutdown builder.")
+			return err
+		}
+
+		fmt.Println("")
+	}
+
+	// push only if everything builds
+	if b.flags.Push {
+		if err := pusher.Run(); err != nil {
+			log.Error().Err(err).Msg("Pushing images failed, check error above. Exiting.")
+			return err
 		}
 	}
 

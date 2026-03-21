@@ -2,14 +2,7 @@ package parser
 
 import (
 	"maps"
-
-	"github.com/tgagor/template-dockerfiles/pkg/config"
 )
-
-func Run(cfg *config.Config, flags *config.Flags) error {
-	parser := NewParser(cfg, flags)
-	return parser.Parse()
-}
 
 // generates all combinations of variables
 func GenerateVariableCombinations(variables map[string]any) []map[string]any {

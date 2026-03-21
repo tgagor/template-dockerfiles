@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
+	"github.com/tgagor/template-dockerfiles/pkg/builder"
 	"github.com/tgagor/template-dockerfiles/pkg/config"
 	"github.com/tgagor/template-dockerfiles/pkg/parser"
 	"github.com/tgagor/template-dockerfiles/pkg/util"
@@ -86,8 +87,20 @@ When 'docker build' is just not enough. :-)`,
 		}
 
 		// Run templating and image building
-		if err := parser.Run(cfg, &flags); err != nil {
-			util.FailOnError(err, "Error during parsing")
+		plan, err := parser.GeneratePlan(cfg, &flags)
+		if err != nil {
+			util.FailOnError(err, "Error during parsing/planning")
+		}
+
+		var engine builder.Engine
+		if flags.Engine == "buildx" {
+			engine = &builder.BuildxBuilder{}
+		} else {
+			engine = &builder.DockerBuilder{}
+		}
+
+		if err := engine.ExecutePlan(plan, &flags); err != nil {
+			util.FailOnError(err, "Error during execution")
 		}
 	},
 }
