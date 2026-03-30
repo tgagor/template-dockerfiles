@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/go-git/go-git/v5 v5.17.0
+	github.com/go-git/go-git/v5 v5.17.1
 	github.com/gruntwork-io/terratest v0.56.0
 	github.com/mattn/go-colorable v0.1.14
 	github.com/rs/zerolog v1.34.0
