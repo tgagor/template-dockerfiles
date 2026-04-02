@@ -145,7 +145,7 @@ jobs:
             ${{ steps.vars.outputs.GOBIN }}/gocritic
           key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('Makefile') }}
 
-      - uses: j178/prek-action@v2
+      - uses: j178/prek-action@v2.0.1
 
   unit-tests:
     name: unit tests
