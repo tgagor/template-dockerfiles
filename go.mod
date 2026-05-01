@@ -7,7 +7,7 @@ require (
 	github.com/go-git/go-git/v5 v5.18.0
 	github.com/gruntwork-io/terratest v0.56.0
 	github.com/mattn/go-colorable v0.1.14
-	github.com/rs/zerolog v1.35.0
+	github.com/rs/zerolog v1.35.1
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	gopkg.in/yaml.v3 v3.0.1
