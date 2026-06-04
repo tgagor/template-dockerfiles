@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -12,7 +13,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/shell"
 )
 
-func cmd(args ...string) shell.Command {
+func command(args ...string) shell.Command {
 	defaultArgs := []string{"run", "../cmd/td"}
 	return shell.Command{
 		Command: "go",
@@ -21,15 +22,22 @@ func cmd(args ...string) shell.Command {
 	}
 }
 
+// func runCommandAndGetOutputE(t *testing.T, cmdStr string) (string, error) {
+// 	cmd := command(cmdStr)
+// 	ctx := context.Background()
+// 	return shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
+// }
+
 // Simplest possible test, just print version and exit
 // Should print version to stdout
 // Should not fail
 func TestPrintVersion(t *testing.T) {
 	t.Parallel()
 
-	cmd := cmd("-V")
+	cmd := command("-V")
+	ctx := context.Background()
 
-	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
 	// should print version
 	assert.Regexp(t, "^(v?[0-9]{1,}\\.[0-9]{1,}\\.[0-9]{1,})|(development)", out)
 	assert.Nil(t, err)
@@ -42,10 +50,11 @@ func TestFailWithoutConfigParam(t *testing.T) {
 	t.Parallel()
 
 	// missing --config
-	cmd := cmd("--build")
+	cmd := command("--build")
+	ctx := context.Background()
 
 	// should fail with error
-	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
 	assert.NotNil(t, err)
 	assert.Contains(t, out, "the --config flag is required")
 
@@ -63,14 +72,15 @@ func TestFailWithoutConfigParam(t *testing.T) {
 func TestCase1(t *testing.T) {
 	t.Parallel()
 
-	cmd := cmd(
+	cmd := command(
 		"--no-color",
 		"--config", "test-1.yaml",
 		"--tag", "v1.1.1",
 		"--verbose",
 	)
+	ctx := context.Background()
 
-	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
 	assert.Nil(t, err)
 	assert.Regexp(t, "Parsing.*image=test-case-1", out)
 
@@ -97,15 +107,16 @@ func TestCase1(t *testing.T) {
 func TestCase2(t *testing.T) {
 	t.Parallel()
 
-	cmd := cmd(
+	cmd := command(
 		"--no-color",
 		"--config", "test-2.yaml",
 		"--tag", "v2.2.2",
 		"--delete",
 		"--verbose",
 	)
+	ctx := context.Background()
 
-	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
 	assert.Nil(t, err)
 	assert.Regexp(t, "Parsing.*image=test-case-2", out)
 	assert.Regexp(t, "Parsing.*image=test-case-2b", out)
@@ -138,13 +149,14 @@ func TestCase2(t *testing.T) {
 func TestCase3(t *testing.T) {
 	t.Parallel()
 
-	cmd := cmd(
+	cmd := command(
 		"--no-color",
 		"--config", "test-3.yaml",
 		"--tag", "v3.3.3",
 	)
+	ctx := context.Background()
 
-	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
 	assert.NotNil(t, err) // should fail
 
 	assert.Contains(t, out, "no 'tags' defined for test-case-3 - add 'tags' block to continue")
@@ -158,15 +170,16 @@ func TestCase3(t *testing.T) {
 func TestCase4(t *testing.T) {
 	t.Parallel()
 
-	cmd := cmd(
+	cmd := command(
 		"--no-color",
 		"--config", "test-4.yaml",
 		"--tag", "v4.4.4",
 		"--delete",
 		"--verbose",
 	)
+	ctx := context.Background()
 
-	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
 	assert.Nil(t, err)
 	assert.Regexp(t, "Parsing.*image=test-case-4", out)
 
@@ -180,15 +193,16 @@ func TestCase4(t *testing.T) {
 func TestCase5(t *testing.T) {
 	t.Parallel()
 
-	cmd := cmd(
+	cmd := command(
 		"--no-color",
 		"--config", "test-5.yaml",
 		"--tag", "v5.5.5",
 		"--delete",
 		"--verbose",
 	)
+	ctx := context.Background()
 
-	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
 	assert.Nil(t, err)
 	assert.Regexp(t, "Parsing.*image=test-case-5", out)
 
@@ -201,15 +215,16 @@ func TestCase5(t *testing.T) {
 func TestCase6(t *testing.T) {
 	t.Parallel()
 
-	cmd := cmd(
+	cmd := command(
 		"--no-color",
 		"--config", "test-6.yaml",
 		"--tag", "v6.6.6",
 		"--delete",
 		"--verbose",
 	)
+	ctx := context.Background()
 
-	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
 	assert.Nil(t, err)
 	assert.Regexp(t, "Parsing.*image=test-case-6", out)
 
@@ -222,14 +237,15 @@ func TestCase6(t *testing.T) {
 func TestCase7(t *testing.T) {
 	t.Parallel()
 
-	cmd := cmd(
+	cmd := command(
 		"--no-color",
 		"--config", "test-7.yaml",
 		"--delete",
 		"--verbose",
 	)
+	ctx := context.Background()
 
-	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
 	assert.Nil(t, err)
 	assert.Regexp(t, "Parsing.*image=test-case-7", out)
 
@@ -242,15 +258,16 @@ func TestCase7(t *testing.T) {
 func TestCase8(t *testing.T) {
 	t.Parallel()
 
-	cmd := cmd(
+	cmd := command(
 		"--no-color",
 		"--config", "test-8.yaml",
 		"--tag", "v8.8.8",
 		"--delete",
 		"--verbose",
 	)
+	ctx := context.Background()
 
-	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
 	assert.Nil(t, err)
 	assert.Regexp(t, "Parsing.*image=test-case-8", out)
 	assert.Contains(t, out, "Skipping excluded config set=")
@@ -264,14 +281,15 @@ func TestCase8(t *testing.T) {
 func TestCase9(t *testing.T) {
 	t.Parallel()
 
-	cmd := cmd(
+	cmd := command(
 		"--no-color",
 		"--config", "test-9.yaml",
 		"--tag", "v9.9.9",
 		"--verbose",
 	)
+	ctx := context.Background()
 
-	out, err := shell.RunCommandAndGetOutputE(t, cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
 	assert.Nil(t, err)
 	assert.Regexp(t, "Parsing.*image=test-case-9", out)
 
