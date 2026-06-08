@@ -1,7 +1,6 @@
 package tests_test
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -22,12 +21,6 @@ func command(args ...string) shell.Command {
 	}
 }
 
-// func runCommandAndGetOutputE(t *testing.T, cmdStr string) (string, error) {
-// 	cmd := command(cmdStr)
-// 	ctx := context.Background()
-// 	return shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
-// }
-
 // Simplest possible test, just print version and exit
 // Should print version to stdout
 // Should not fail
@@ -35,9 +28,8 @@ func TestPrintVersion(t *testing.T) {
 	t.Parallel()
 
 	cmd := command("-V")
-	ctx := context.Background()
 
-	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, t.Context(), &cmd)
 	// should print version
 	assert.Regexp(t, "^(v?[0-9]{1,}\\.[0-9]{1,}\\.[0-9]{1,})|(development)", out)
 	assert.Nil(t, err)
@@ -51,10 +43,9 @@ func TestFailWithoutConfigParam(t *testing.T) {
 
 	// missing --config
 	cmd := command("--build")
-	ctx := context.Background()
 
 	// should fail with error
-	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, t.Context(), &cmd)
 	assert.NotNil(t, err)
 	assert.Contains(t, out, "the --config flag is required")
 
@@ -78,9 +69,8 @@ func TestCase1(t *testing.T) {
 		"--tag", "v1.1.1",
 		"--verbose",
 	)
-	ctx := context.Background()
 
-	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, t.Context(), &cmd)
 	assert.Nil(t, err)
 	assert.Regexp(t, "Parsing.*image=test-case-1", out)
 
@@ -114,9 +104,8 @@ func TestCase2(t *testing.T) {
 		"--delete",
 		"--verbose",
 	)
-	ctx := context.Background()
 
-	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, t.Context(), &cmd)
 	assert.Nil(t, err)
 	assert.Regexp(t, "Parsing.*image=test-case-2", out)
 	assert.Regexp(t, "Parsing.*image=test-case-2b", out)
@@ -154,9 +143,8 @@ func TestCase3(t *testing.T) {
 		"--config", "test-3.yaml",
 		"--tag", "v3.3.3",
 	)
-	ctx := context.Background()
 
-	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, t.Context(), &cmd)
 	assert.NotNil(t, err) // should fail
 
 	assert.Contains(t, out, "no 'tags' defined for test-case-3 - add 'tags' block to continue")
@@ -177,9 +165,8 @@ func TestCase4(t *testing.T) {
 		"--delete",
 		"--verbose",
 	)
-	ctx := context.Background()
 
-	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, t.Context(), &cmd)
 	assert.Nil(t, err)
 	assert.Regexp(t, "Parsing.*image=test-case-4", out)
 
@@ -200,9 +187,8 @@ func TestCase5(t *testing.T) {
 		"--delete",
 		"--verbose",
 	)
-	ctx := context.Background()
 
-	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, t.Context(), &cmd)
 	assert.Nil(t, err)
 	assert.Regexp(t, "Parsing.*image=test-case-5", out)
 
@@ -222,9 +208,8 @@ func TestCase6(t *testing.T) {
 		"--delete",
 		"--verbose",
 	)
-	ctx := context.Background()
 
-	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, t.Context(), &cmd)
 	assert.Nil(t, err)
 	assert.Regexp(t, "Parsing.*image=test-case-6", out)
 
@@ -243,9 +228,8 @@ func TestCase7(t *testing.T) {
 		"--delete",
 		"--verbose",
 	)
-	ctx := context.Background()
 
-	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, t.Context(), &cmd)
 	assert.Nil(t, err)
 	assert.Regexp(t, "Parsing.*image=test-case-7", out)
 
@@ -265,9 +249,8 @@ func TestCase8(t *testing.T) {
 		"--delete",
 		"--verbose",
 	)
-	ctx := context.Background()
 
-	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, t.Context(), &cmd)
 	assert.Nil(t, err)
 	assert.Regexp(t, "Parsing.*image=test-case-8", out)
 	assert.Contains(t, out, "Skipping excluded config set=")
@@ -287,9 +270,8 @@ func TestCase9(t *testing.T) {
 		"--tag", "v9.9.9",
 		"--verbose",
 	)
-	ctx := context.Background()
 
-	out, err := shell.RunCommandContextAndGetOutputE(t, ctx, &cmd)
+	out, err := shell.RunCommandContextAndGetOutputE(t, t.Context(), &cmd)
 	assert.Nil(t, err)
 	assert.Regexp(t, "Parsing.*image=test-case-9", out)
 
