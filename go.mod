@@ -1,11 +1,11 @@
 module github.com/tgagor/template-dockerfiles
 
-go 1.26
+go 1.26.0
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/go-git/go-git/v5 v5.19.1
-	github.com/gruntwork-io/terratest v1.0.0
+	github.com/gruntwork-io/terratest v1.0.1
 	github.com/mattn/go-colorable v0.1.15
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/cobra v1.10.2
